@@ -4,7 +4,11 @@
 #include <time.h>
 #include <string.h>
 #include <unistd.h>
+/*
+خیلی مهمه که برای ران شدن کد حتما صفحتون بزرگ باشه
 
+
+*/
 #define MAP_WIDTH 100
 #define MAP_HEIGHT 30
 #define MIN_ROOM_SIZE 4
@@ -27,8 +31,13 @@ char container[MAP_WIDTH][MAP_HEIGHT];
 char container2[MAP_WIDTH][MAP_HEIGHT];
 char container3[MAP_WIDTH][MAP_HEIGHT];
 char container4[MAP_WIDTH][MAP_HEIGHT];
+typedef struct {
+    int x ,y;
+    int type;
 
-int floorcount = 1;
+} Food;
+
+int floorcount = 0;
 
 void map_container(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT]) {
     for (int i = 0; i < MAP_WIDTH; i++) {
@@ -60,6 +69,8 @@ typedef struct {
     char HeroColor[30];
     int heart;
     int food;
+    int typefood;
+    Food foods[30];
     int gold;
 } Hero;
 
@@ -68,16 +79,29 @@ typedef struct {
     int width, height;
     bool haspillar;
     char typeofroom[30];
-    bool visited;
+
     bool hastrap;
     int trapcount;
     Trap traps;
-    bool secretdoor;
+
+    int foodCount;
+    Food foods[20];
+
 } Room;
+void revealRoom(Room room, bool seen[MAP_WIDTH][MAP_HEIGHT]) {
+    for (int i = 0; i < room.height; i++) {
+        for (int j = 0; j < room.width; j++) {
+            int nx = room.x + j;
+            int ny = room.y + i;
+            if (nx >= 0 && nx < MAP_WIDTH && ny >= 0 && ny < MAP_HEIGHT) {
+                seen[nx][ny] = true;
+            }
+        }
+    }
+}
 
 
-
-void updateVisibility(WINDOW* win, Hero hero, int radius, bool seen[MAP_WIDTH][MAP_HEIGHT]) {
+void updateVisibility(WINDOW* win, Hero hero, int radius, bool seen[MAP_WIDTH][MAP_HEIGHT] , Room* rooms , int roomcount) {
     for (int dx = -radius; dx <= radius; dx++) {
         for (int dy = -radius; dy <= radius; dy++) {
             int nx = hero.x + dx;
@@ -86,6 +110,15 @@ void updateVisibility(WINDOW* win, Hero hero, int radius, bool seen[MAP_WIDTH][M
             if (nx >= 0 && nx < MAP_WIDTH && ny >= 0 && ny < MAP_HEIGHT) {
                 seen[nx][ny] = true;  // Mark as seen
             }
+        }
+    }
+    for (int i = 0; i < roomcount; i++) {
+    Room room = rooms[i];
+    if (hero.x >= room.x && hero.x < room.x + room.width &&
+            hero.y >= room.y && hero.y < room.y + room.height) {
+            // اگر وارد اتاق شد، اتاق را نشان بده
+            revealRoom(room, seen);
+            break;
         }
     }
 }
@@ -229,7 +262,110 @@ void typeroom(WINDOW* win, Room* rooms, int roomcount) {
         strcpy(rooms[array[i]].typeofroom, "Regular Room");
     }
 }
+void foodsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT]){
+    for(int i =0 ; i<roomcount ; i++){
+        int foodcounter = rand() % 2+1;
+        rooms[i].foodCount = foodcounter;
+        for(int j=0 ; j<foodcounter ; j++){
+            int xrnd = rooms[i].x + 1 + rand() % (rooms[i].width - 2);
+            int yrnd = rooms[i].y + 1 + rand() % (rooms[i].height - 2);
+            
+            int typef = rand() % 4+1;
 
+            switch(typef){
+                case 1 :
+                    mvwaddch(win , yrnd , xrnd , 'A');
+                    container[xrnd][yrnd] = 'A';
+                    wrefresh(win);
+                    break;
+                case 2 :
+                    mvwaddch(win , yrnd , xrnd , 'G');
+                    container[xrnd][yrnd] = 'G';
+                    wrefresh(win);
+                    break;
+                case 3 :
+                    mvwaddch(win , yrnd , xrnd , 'M');
+                    container[xrnd][yrnd] = 'M';
+                    wrefresh(win);
+                    break;
+                case 4 :
+                    mvwaddch(win , yrnd , xrnd , 'K');
+                    container[xrnd][yrnd] = 'K';
+                    wrefresh(win);
+                    break;
+            }
+            rooms[i].foods[j].x = xrnd;
+            rooms[i].foods[j].y =yrnd;
+            rooms[i].foods[j].type = typef;
+
+        }
+    }
+
+}
+int isitinfood(WINDOW* win , int x , int y){
+    chtype ch  = mvwinch(win , y , x);
+    if((char)ch == 'G' || (char)ch == 'M' || (char)ch == 'A' || (char)ch == 'K'){
+        return 1;
+    }
+    return 0;
+}
+void addfoodhero(WINDOW* win , Hero* hero , char container[MAP_WIDTH][MAP_HEIGHT] , int x , int y ){
+    chtype ch = mvwinch(win , y , x);
+    if((char)ch =='A'){
+        hero->foods[hero->food].type = 1;
+        hero->food++;
+        mvwaddch(win , y , x , '.');
+        container[x][y]= '.';
+    }
+    if((char)ch =='G'){
+        hero->foods[hero->food].type = 2;
+        hero->food++;
+        mvwaddch(win , y , x , '.');
+        container[x][y]= '.';
+    }
+    if((char)ch =='M'){
+        hero->foods[hero->food].type = 3;
+        hero->food++;
+        mvwaddch(win , y , x , '.');
+        container[x][y]= '.';
+    }
+    if((char)ch =='K'){
+        hero->foods[hero->food].type = 4;
+        hero->food++;
+        mvwaddch(win , y , x , '.');
+        container[x][y]= '.';
+    }
+    
+}
+void showingfoods(WINDOW* win , WINDOW* messagewin , Hero* hero){
+    int count =hero->food;
+    int count_copy = 0;
+    char* typecontainer[30];
+    for(int i=0 ; i<count ; i++){
+        int type = hero->foods[i].type;
+        switch (type) {
+            case 1:
+                typecontainer[count_copy] = "Apple";
+                count_copy++;
+                break;
+            case 2 :
+                typecontainer[count_copy] = "Golden Apple";
+                count_copy++;
+                break;
+            case 3:
+                typecontainer[count_copy] = "Magic Apple";
+                count_copy++;
+                break;
+            case 4:
+                typecontainer[count_copy] = "Poisin Apple";
+                count_copy++;
+                break;
+        }
+    }
+    for(int i=0 ; i<count ; i++){
+        wprintw(messagewin , "%s\t" , typecontainer[i]);
+    }
+}
 void drawRoom(WINDOW* win, Room room) {
     for (int i = 0; i < room.height; i++) {
         for (int j = 0; j < room.width; j++) {
@@ -361,6 +497,7 @@ bool isitpassdoor(WINDOW* win, WINDOW* messagewin , int x , int y , Pdoor* pdoor
         sleep(2);
         
         if(pdoor->open){
+            pdoor->open = false;
             return true;
         }
         else{
@@ -409,7 +546,7 @@ void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Sta
         }
         placeTraps(&rooms[i]);
     }
-
+    foodsinroom(mapWin , rooms , *roomCount , container);
     // قرار دادن درها
     for (int i = 0; i < MAP_WIDTH; i++) {
         for (int j = 0; j < MAP_HEIGHT; j++) {
@@ -431,7 +568,10 @@ void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Sta
        
     }
     container[x_doors[3]][y_doors[3]] = '@';
+    attron(COLOR_PAIR(1));
     mvwaddch(mapWin , y_doors[3], x_doors[3] , '@');
+    attroff(COLOR_PAIR(1));
+    wrefresh(mapWin);
     passwordkey(mapWin , rooms , container);
     pdoor->x = x_doors[3];
     pdoor->y =y_doors[3];
@@ -450,7 +590,7 @@ void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Sta
 
     // به‌روزرسانی container و seen
     map_container(mapWin, container);
-    updateVisibility(mapWin, *hero, 1, seen);
+    updateVisibility(mapWin, *hero, 1, seen , rooms , roomCount);
 
     
     wrefresh(mapWin);
@@ -461,16 +601,20 @@ int main() {
     initscr();
     noecho();
     curs_set(0);
-    
+    start_color();
+    init_pair(1 , COLOR_RED , COLOR_BLACK);
+    init_pair(2 , COLOR_GREEN , COLOR_BLACK);
+    init_pair(3 , COLOR_YELLOW , COLOR_BLACK);
 
     WINDOW* mapWin = newwin(MAP_HEIGHT + 2, MAP_WIDTH + 2, 0, 0);
     WINDOW* messagewin = newwin(5 , 20 , MAP_HEIGHT + 5 , MAP_HEIGHT + 5);
-    box(messagewin , 0 , 0);
+    box(messagewin , 0 ,0);
     wrefresh(messagewin);
     
     refresh();
 
     Hero hero;
+    hero.food = 0;
     Stair stair;
     Pdoor pdoor;
     Room rooms[MAX_ROOMS];
@@ -643,8 +787,13 @@ int main() {
                     }
                 }
                 break;
-            
+            case 101:
+                if(isitinfood(mapWin , hero.x , hero.y)){
+                    addfoodhero(mapWin , &hero , container , hero.x , hero.y);
+                    showingfoods(mapWin , messagewin , &hero);
+                }
         }
+            
 
         
         isontrap(mapWin, rooms, roomCount, &hero);
@@ -657,16 +806,16 @@ int main() {
 
         // به‌روزرسانی نقشه و موقعیت قهرمان
         if(floorcount == 1){
-            updateVisibility(mapWin, hero, 1, seen);
+            updateVisibility(mapWin, hero, 1, seen , rooms , roomCount);
         }
         if(floorcount == 2){
-            updateVisibility(mapWin, hero, 1, seen2);
+            updateVisibility(mapWin, hero, 1, seen2 , rooms ,roomCount);
         }
         if(floorcount == 3){
-            updateVisibility(mapWin, hero, 1, seen3);
+            updateVisibility(mapWin, hero, 1, seen3 , rooms , roomCount);
         }
         if(floorcount == 4){
-            updateVisibility(mapWin, hero, 1, seen4);
+            updateVisibility(mapWin, hero, 1, seen4 , rooms , roomCount);
         }
         
         mvwaddch(mapWin, hero.y, hero.x, 'H');
