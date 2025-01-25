@@ -36,6 +36,17 @@ typedef struct {
     int type;
 
 } Food;
+typedef struct {
+    int x , y;
+    int value;
+} Gold;
+
+
+
+typedef struct {
+    int x , y ;
+} BGold;
+
 
 int floorcount = 0;
 
@@ -50,7 +61,7 @@ void map_container(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT]) {
 
 typedef struct {
     int x , y;
-    bool activate;
+    bool alwaysclose;
     bool open;
     int password;
 } Pdoor;
@@ -71,7 +82,12 @@ typedef struct {
     int food;
     int typefood;
     Food foods[30];
+    Gold glods[30];
+    BGold bgolds[30];
+    int bgoldcounter;
+    int goldcount;
     int gold;
+    int move;
 } Hero;
 
 typedef struct {
@@ -79,7 +95,10 @@ typedef struct {
     int width, height;
     bool haspillar;
     char typeofroom[30];
-
+    Gold golds[30];
+    BGold bgolds[30];
+    int bgoldcounter;
+    int goldcount;
     bool hastrap;
     int trapcount;
     Trap traps;
@@ -124,11 +143,48 @@ void updateVisibility(WINDOW* win, Hero hero, int radius, bool seen[MAP_WIDTH][M
 }
 
 void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[MAP_WIDTH][MAP_HEIGHT]) {
+    start_color();
+    init_pair(1 , COLOR_RED , COLOR_BLACK);
+    init_pair(2 , COLOR_BLUE , COLOR_BLACK);
+    init_pair(3 , COLOR_CYAN , COLOR_BLACK);
+    init_pair(4 , COLOR_YELLOW , COLOR_BLACK);
+    init_pair(5 , COLOR_GREEN , COLOR_BLACK);
+    init_pair(6, COLOR_MAGENTA , COLOR_BLACK);
+
     for (int x = 0; x < MAP_WIDTH; x++) {
         for (int y = 0; y < MAP_HEIGHT; y++) {
             if (seen[x][y]) {
+                
+
                 chtype ch = container[x][y];
-                mvwaddch(win, y, x, ch);  // Display the actual character
+                if((char)ch == '.'){
+                    wattron(win , COLOR_PAIR(2));
+                    mvwaddch(win, y, x, ch); 
+                    wattroff(win , COLOR_PAIR(2));
+
+                }
+                else if((char)ch == '|' || (char)ch == '_' || (char)ch == 'O' || (char)ch == '&' || (char)ch == '+'){
+                    wattron(win , COLOR_PAIR(3));
+                    mvwaddch(win, y, x, ch); 
+                    wattroff(win , COLOR_PAIR(3));
+                }
+                else if((char)ch == 'A' || (char)ch == 'M' || (char)ch == 'G' || (char)ch == 'K' ){
+                    wattron(win , COLOR_PAIR(5));
+                    mvwaddch(win , y ,x , ch);
+                    wattroff(win , COLOR_PAIR(5));
+                }
+                else if((char)ch =='#' || (char)ch == '>'){
+                    wattron(win , COLOR_PAIR(6));
+                    mvwaddch(win , y ,x , ch);
+                    wattroff(win , COLOR_PAIR(6)); 
+
+                }
+                else if((char)ch =='@'){
+                    wattron(win , COLOR_PAIR(1));
+                    mvwaddch(win , y ,x , ch);
+                    wattroff(win , COLOR_PAIR(1));
+                }
+ // Display the actual character
             } else {
                 mvwaddch(win, y, x, ' ');  // Display empty space
             }
@@ -302,6 +358,7 @@ void foodsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_
     }
 
 }
+void goldsinroom()
 int isitinfood(WINDOW* win , int x , int y){
     chtype ch  = mvwinch(win , y , x);
     if((char)ch == 'G' || (char)ch == 'M' || (char)ch == 'A' || (char)ch == 'K'){
@@ -310,6 +367,9 @@ int isitinfood(WINDOW* win , int x , int y){
     return 0;
 }
 void addfoodhero(WINDOW* win , Hero* hero , char container[MAP_WIDTH][MAP_HEIGHT] , int x , int y ){
+    if (hero->food > 5){
+        return;
+    }
     chtype ch = mvwinch(win , y , x);
     if((char)ch =='A'){
         hero->foods[hero->food].type = 1;
@@ -335,10 +395,26 @@ void addfoodhero(WINDOW* win , Hero* hero , char container[MAP_WIDTH][MAP_HEIGHT
         mvwaddch(win , y , x , '.');
         container[x][y]= '.';
     }
+
     
 }
+void removeFood(Hero* hero, int index) {
+    if (index >= hero->food || index < 0) return; // بررسی اینکه اندیس معتبر باشد
+    
+    for (int i = index; i < hero->food - 1; i++) {
+        hero->foods[i] = hero->foods[i + 1];
+    }
+    hero->food -= hero->food; // کاهش تعداد غذاها
+}
+
 void showingfoods(WINDOW* win , WINDOW* messagewin , Hero* hero){
     int count =hero->food;
+    if(count==0){
+        mvwprintw(messagewin , 0 , 0 , "No food !");
+        wrefresh(messagewin);
+        return ;
+    }
+    
     int count_copy = 0;
     char* typecontainer[30];
     for(int i=0 ; i<count ; i++){
@@ -362,10 +438,31 @@ void showingfoods(WINDOW* win , WINDOW* messagewin , Hero* hero){
                 break;
         }
     }
+    wclear(messagewin);
     for(int i=0 ; i<count ; i++){
-        wprintw(messagewin , "%s\t" , typecontainer[i]);
+        mvwprintw(messagewin,i+1 , 0 , "%s\n" , typecontainer[i]);
+    }
+    mvwprintw(messagewin, count + 1, 0, "Choose a number to eat:");
+    wrefresh(messagewin);
+    
+    echo();
+    int choice;
+    wscanw(messagewin, "%d", &choice);
+    noecho();
+
+    if (choice >= 0 && choice < count) {
+        mvwprintw(messagewin, count + 2, 0, "Eating food %d...", choice);
+        wrefresh(messagewin);
+
+        // حذف غذا از اینونتوری
+        removeFood(hero, choice);
+    } else {
+        mvwprintw(messagewin, count + 2, 0, "Invalid choice!");
+        wrefresh(messagewin);
+        return 0;
     }
 }
+
 void drawRoom(WINDOW* win, Room room) {
     for (int i = 0; i < room.height; i++) {
         for (int j = 0; j < room.width; j++) {
@@ -452,11 +549,12 @@ void passwordkey(WINDOW* mapWin , Room* rooms  , char container[MAP_WIDTH][MAP_H
 int generatepassword(WINDOW* win , WINDOW* messagewin , Pdoor* pdoor){
     int password = 1000 + rand() % 9000;
     pdoor->password = password;
-    pdoor->activate = true;
+    
     pdoor->open = false;
     return password;
 }
 void isonpasswordkey(WINDOW* win, WINDOW* messagewin, int x, int y, Pdoor* pdoor) {
+    wclear(messagewin);
     chtype ch = mvwinch(win, y, x) & A_CHARTEXT; // خواندن کاراکتر در موقعیت (x, y)
     if ((char)ch == '&') { // اگر کاراکتر '&' باشد
         mvwprintw(messagewin, 0, 0, "You found the key!"); // پیام پیدا کردن کلید
@@ -474,46 +572,68 @@ void isonpasswordkey(WINDOW* win, WINDOW* messagewin, int x, int y, Pdoor* pdoor
 
 
 
-bool isitpassdoor(WINDOW* win, WINDOW* messagewin , int x , int y , Pdoor* pdoor){
-    chtype ch = mvwinch(win , y , x );
-    if((char)ch == '@'){
-
-        int input;
-
-
-            // ورود رمز
-        echo(); // لازم است برای نمایش ورودی
-        mvwscanw(messagewin, 2, 0, "%4d", &input);
-        noecho(); // برگرداندن وضعیت به حالت غیراکو
-        wrefresh(messagewin);
-
-        if (input == pdoor->password) {
-            pdoor->open = true;
-            mvwprintw(messagewin, 2, 0, "Access granted!");
-        } else {
-             mvwprintw(messagewin, 2, 0, "Access denied!");
-        }
-        wrefresh(messagewin);
-        sleep(2);
-        
-        if(pdoor->open){
-            pdoor->open = false;
-            return true;
+bool isitpassdoor(WINDOW* win, WINDOW* messagewin, int x, int y, Pdoor* pdoor) {
+    wclear(messagewin);
+    chtype ch = mvwinch(win, y, x);
+    if ((char)ch == '@'){
+        if (pdoor->alwaysclose == true) {
+            attron(COLOR_PAIR(1));
+             mvwprintw(messagewin, 0, 0, "The door is permanently locked!");
+             attroff(COLOR_PAIR(1));
+            wrefresh(messagewin);
+            sleep(2);
+            return false;
         }
         else{
+
+ 
+            int input = -1; // مقداردهی اولیه برای جلوگیری از داده ناخواسته
+            int wrongs = 0;
+
+            while (wrongs < 3) {
+                mvwprintw(messagewin, 0, 0, "Enter password: ");
+                wrefresh(messagewin);
+                echo(); // فعال کردن نمایش ورودی کاربر
+                mvwscanw(messagewin, 1, 0, "%4d", &input);
+                noecho(); // غیرفعال کردن نمایش ورودی کاربر
+
+                if (input == pdoor->password) {
+                    pdoor->open = true;
+                    mvwprintw(messagewin, 2, 0, "Access granted!");
+                    wrefresh(messagewin);
+                    sleep(2);
+                    return true; // باز کردن درب
+                } else {
+                    wrongs++;
+                    mvwprintw(messagewin, 2, 0, "Wrong password! Attempts left: %d", 3 - wrongs);
+                    wrefresh(messagewin);
+                }
+            }
+
+            // اگر تعداد تلاش‌ها تمام شود:
+            mvwprintw(messagewin, 3, 0, "The door is now permanently locked!");
+            wrefresh(messagewin);
+            sleep(2);
+            pdoor->alwaysclose = true; // درب برای همیشه بسته شود
+        
             return false;
         }
     }
-    else {
-        return true;
+}
+void Dheartmove(Hero* hero){
+    if((hero->move) % 10 == 0){
+        hero->heart --;
     }
 }
+
 
 void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Stair* stair, bool seen[MAP_WIDTH][MAP_HEIGHT], char container[MAP_WIDTH][MAP_HEIGHT] , Pdoor* pdoor) {
     floorcount++;
     werase(mapWin);
 
-    // بازنشانی متغیرها
+    start_color();
+    init_pair(1 , COLOR_RED , COLOR_BLACK);
+
     *roomCount = 0;
     memset(seen, 0, sizeof(seen)); // بازنشانی seen
     memset(container, '.', sizeof(container)); // بازنشانی container
@@ -567,6 +687,7 @@ void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Sta
         }
        
     }
+
     container[x_doors[3]][y_doors[3]] = '@';
     attron(COLOR_PAIR(1));
     mvwaddch(mapWin , y_doors[3], x_doors[3] , '@');
@@ -575,9 +696,9 @@ void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Sta
     passwordkey(mapWin , rooms , container);
     pdoor->x = x_doors[3];
     pdoor->y =y_doors[3];
-    pdoor->activate = false;
-    pdoor->open = false;
     
+    pdoor->open = false;
+    pdoor->alwaysclose = false;
     stair->exists = false;
     placestair(mapWin, rooms, *roomCount, stair);
 
@@ -607,14 +728,17 @@ int main() {
     init_pair(3 , COLOR_YELLOW , COLOR_BLACK);
 
     WINDOW* mapWin = newwin(MAP_HEIGHT + 2, MAP_WIDTH + 2, 0, 0);
-    WINDOW* messagewin = newwin(5 , 20 , MAP_HEIGHT + 5 , MAP_HEIGHT + 5);
-    box(messagewin , 0 ,0);
+    WINDOW* messagewin = newwin(MAP_HEIGHT + 2, 30, 0, MAP_WIDTH + 2); // مکان و ابعاد جدید
+    box(messagewin, 0, 0); // رسم کادر برای پنجره پیام
     wrefresh(messagewin);
+
     
     refresh();
 
     Hero hero;
     hero.food = 0;
+    hero.heart = 10;
+    hero.move = 1;
     Stair stair;
     Pdoor pdoor;
     Room rooms[MAX_ROOMS];
@@ -650,6 +774,8 @@ int main() {
             case 50: // پایین
                 if (isitwallorO(mapWin, hero.x, hero.y + 1) && isitpassdoor(mapWin ,messagewin , hero.x , hero.y + 1 , &pdoor)) {
                     hero.y++;
+                    hero.move ++;
+                    Dheartmove(&hero);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -667,6 +793,8 @@ int main() {
             case 56:
                 if(isitwallorO(mapWin , hero.x , hero.y - 1 ) && isitpassdoor(mapWin ,messagewin , hero.x  , hero.y - 1, &pdoor)){
                     hero.y--;
+                    hero.move++;
+                    Dheartmove(&hero);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -683,7 +811,9 @@ int main() {
                 break;
             case 54:
                 if(isitwallorO(mapWin , hero.x + 1 , hero.y ) && isitpassdoor(mapWin ,messagewin , hero.x + 1 , hero.y , &pdoor)){
-                hero.x++;
+                    hero.x++;
+                    hero.move++;
+                    Dheartmove(&hero);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -701,6 +831,8 @@ int main() {
             case 52:
                 if(isitwallorO(mapWin , hero.x - 1 , hero.y ) && isitpassdoor(mapWin ,messagewin , hero.x - 1 , hero.y , &pdoor)){
                     hero.x--;
+                    hero.move++;
+                    Dheartmove(&hero);
                      if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -719,6 +851,8 @@ int main() {
                 if(isitwallorO(mapWin , hero.x - 1 , hero.y - 1 ) && isitpassdoor(mapWin ,messagewin , hero.x - 1 , hero.y - 1 , &pdoor)){
                     hero.x--;
                     hero.y--;
+                    hero.move++;
+                    Dheartmove(&hero);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -737,6 +871,8 @@ int main() {
                 if(isitwallorO(mapWin , hero.x + 1 , hero.y - 1 ) && isitpassdoor(mapWin ,messagewin , hero.x + 1 , hero.y - 1 , &pdoor)){
                     hero.x ++;
                     hero.y --;
+                    hero.move++;
+                    Dheartmove(&hero);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -755,6 +891,8 @@ int main() {
                 if(isitwallorO(mapWin , hero.x - 1 , hero.y + 1 ) && isitpassdoor(mapWin ,messagewin , hero.x - 1 , hero.y + 1, &pdoor)){
                     hero.x --;
                     hero.y++;
+                    hero.move++;
+                    Dheartmove(&hero);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -773,6 +911,8 @@ int main() {
                 if(isitwallorO(mapWin , hero.x + 1 , hero.y + 1 ) && isitpassdoor(mapWin ,messagewin, hero.x + 1 , hero.y + 1, &pdoor)){
                     hero.x++;
                     hero.y++;
+                    hero.move++;
+                    Dheartmove(&hero);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -789,9 +929,11 @@ int main() {
                 break;
             case 101:
                 if(isitinfood(mapWin , hero.x , hero.y)){
-                    addfoodhero(mapWin , &hero , container , hero.x , hero.y);
+                    
                     showingfoods(mapWin , messagewin , &hero);
                 }
+            case 117 :
+                addfoodhero(mapWin , &hero ,container , hero.x , hero.y);
         }
             
 
