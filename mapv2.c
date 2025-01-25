@@ -41,6 +41,7 @@ typedef struct {
     int value;
 } Gold;
 
+Gold goldcontainer[50];
 
 
 typedef struct {
@@ -82,7 +83,6 @@ typedef struct {
     int food;
     int typefood;
     Food foods[30];
-    Gold glods[30];
     BGold bgolds[30];
     int bgoldcounter;
     int goldcount;
@@ -95,8 +95,8 @@ typedef struct {
     int width, height;
     bool haspillar;
     char typeofroom[30];
+    
     Gold golds[30];
-    BGold bgolds[30];
     int bgoldcounter;
     int goldcount;
     bool hastrap;
@@ -183,6 +183,11 @@ void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[M
                     wattron(win , COLOR_PAIR(1));
                     mvwaddch(win , y ,x , ch);
                     wattroff(win , COLOR_PAIR(1));
+                }
+                else if((char)ch =='$'){
+                    wattron(win ,COLOR_PAIR(4));
+                    mvwaddch(win , y , x ,ch);
+                    wattroff(win , COLOR_PAIR(4));
                 }
  // Display the actual character
             } else {
@@ -358,7 +363,44 @@ void foodsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_
     }
 
 }
-void goldsinroom()
+void goldsinroom(WINDOW* win  , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT] , Gold* goldcontainer){
+    int counter = 0;
+    for(int i= 0 ; i< roomcount ; i++){
+        int goldcount = rand() % 1 +1 ;
+        rooms[i].goldcount = goldcount;
+        for(int j =0 ; j<goldcount ; j++){
+            int xrnd = rooms[i].x + 1 + rand() % (rooms[i].width - 2);
+            int yrnd = rooms[i].y + 1 + rand() % (rooms[i].height - 2);
+            int what = rand() % 3 + 1;
+            rooms[i].golds[j].x = xrnd ;
+            rooms[i].golds[j].y = yrnd;
+            rooms[i].golds[j].value = what;
+            goldcontainer[counter].x =xrnd;
+            goldcontainer[counter].y = yrnd;
+            goldcontainer[counter].value = what;
+            counter ++;
+            mvwaddch(win, yrnd , xrnd , '$');
+            container[xrnd][yrnd] = '$';
+            wrefresh(win);            
+        }
+    }
+}
+void isitingold(WINDOW* win,WINDOW* messagewin ,int x , int y , Hero* hero , Gold* goldcontainer){
+    chtype ch = mvwinch(win , y ,x);
+    if((char)ch == '$'){
+        wclear(messagewin);
+        for(int i= 0 ; i<50 ; i++){
+            if( x == goldcontainer[i].x && y== goldcontainer[i].y){
+                mvwprintw(messagewin , 0 , 0 , "you earn %d golds!" , goldcontainer[i].value);
+                hero->goldcount += goldcontainer[i].value;
+                container[x][y]='.';
+            }
+        }
+        
+        
+    }
+    
+}
 int isitinfood(WINDOW* win , int x , int y){
     chtype ch  = mvwinch(win , y , x);
     if((char)ch == 'G' || (char)ch == 'M' || (char)ch == 'A' || (char)ch == 'K'){
@@ -627,7 +669,7 @@ void Dheartmove(Hero* hero){
 }
 
 
-void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Stair* stair, bool seen[MAP_WIDTH][MAP_HEIGHT], char container[MAP_WIDTH][MAP_HEIGHT] , Pdoor* pdoor) {
+void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Stair* stair, bool seen[MAP_WIDTH][MAP_HEIGHT], char container[MAP_WIDTH][MAP_HEIGHT] , Pdoor* pdoor , Gold* goldcontainer) {
     floorcount++;
     werase(mapWin);
 
@@ -667,6 +709,7 @@ void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Sta
         placeTraps(&rooms[i]);
     }
     foodsinroom(mapWin , rooms , *roomCount , container);
+    goldsinroom(mapWin , rooms , *roomCount , container , goldcontainer);
     // قرار دادن درها
     for (int i = 0; i < MAP_WIDTH; i++) {
         for (int j = 0; j < MAP_HEIGHT; j++) {
@@ -745,7 +788,7 @@ int main() {
     int roomCount = 0;
 
     // تولید طبقه‌ی اول
-    generateFloor(mapWin, rooms, &roomCount, &hero, &stair, seen, container , &pdoor);
+    generateFloor(mapWin, rooms, &roomCount, &hero, &stair, seen, container , &pdoor , goldcontainer);
    
     keypad(stdscr, TRUE);
     wrefresh(mapWin);
@@ -940,10 +983,11 @@ int main() {
         
         isontrap(mapWin, rooms, roomCount, &hero);
         isonpasswordkey(mapWin , messagewin , hero.x , hero.y , &pdoor);
+        isitingold( mapWin, messagewin ,hero.x , hero.y ,  &hero , goldcontainer);
         wrefresh(messagewin);
         if (stair.exists && hero.x == stair.x && hero.y == stair.y) {
             floorcount++;
-            generateFloor(mapWin, rooms, &roomCount, &hero, &stair, seen, container , &pdoor);
+            generateFloor(mapWin, rooms, &roomCount, &hero, &stair, seen, container , &pdoor , goldcontainer);
         }
 
         // به‌روزرسانی نقشه و موقعیت قهرمان
