@@ -10,7 +10,7 @@ need to add :
 1 . login as guest
 2 . change hero color
 3 . savein map nd other things
-4 . show message when hero enter new room and floor
+
 5 . adding traps
 6 . 
 
@@ -40,7 +40,14 @@ char container4[MAP_WIDTH][MAP_HEIGHT];
 typedef struct {
     int x , y;
     int type;
+    int count;
+    
 } Gun;
+int macecounter = 1;
+int daggercounter = 0;
+int mwandcounter = 0;
+int narrowcounter = 0;
+int swordcounter =0 ;
 typedef struct {
     int x ,y;
     int type;
@@ -391,14 +398,30 @@ int isitongun(WINDOW* win , WINDOW* messagewin , int x , int y ){
     return 0;
     
 }
-void addtoinventory(WINDOW* win , WINDOW* messagewin , Hero* hero , int x , int y ,Gun* guncontainer){
+void addtoinventory(WINDOW* win , WINDOW* messagewin , Hero* hero , int x , int y ,Gun* guncontainer ){
     wclear(messagewin);
     for(int i=0 ; i<50 ; i++){
         if(guncontainer[i].x == x && guncontainer[i].y == y){
-            hero->guns[hero->guncount].x = x;
+            hero->guns[hero->guncount].x = x; 
             hero->guns[hero->guncount].y = y;
             hero->guns[hero->guncount].type = guncontainer[i].type;
+            if(guncontainer[i].type == 1){
+                macecounter++;
+            }
+            else if(guncontainer[i].type == 2){
+                daggercounter++;
+            }
+            else if(guncontainer[i].type == 3){
+                mwandcounter++;
+            }
+            else if(guncontainer[i].type == 4){
+                narrowcounter++;
+            }
+            else if(guncontainer[i].type == 5){
+                swordcounter++;
+            }
             hero->guncount++;
+            
             mvwprintw(messagewin , 0 , 0 , "You add gun type : %d" , guncontainer[i].type);
             wrefresh(messagewin);
             sleep(2);
@@ -407,6 +430,43 @@ void addtoinventory(WINDOW* win , WINDOW* messagewin , Hero* hero , int x , int 
             
         }
     }
+}
+void changegun(WINDOW* win , WINDOW*  messagewin , Hero* hero  ){
+    wclear(messagewin);
+    mvwprintw(messagewin , 0 , 0  , "YOUR GUNS : ");
+    mvwprintw(messagewin , 1 , 0 , "Mace : %d" , macecounter);
+    mvwprintw(messagewin , 2 ,0 , "Dagger : %d" , daggercounter);
+    mvwprintw(messagewin , 3 , 0 , "Magic Wand : %d" , mwandcounter);
+    mvwprintw(messagewin ,4, 0, "Normal Arrow : %d" , narrowcounter);
+    mvwprintw(messagewin , 5 , 0 , "Sword : %d" , swordcounter);
+
+
+    int choice;
+    echo();
+    mvwprintw(messagewin , 6 , 0 , "Enter a  number : ");
+    wscanw(messagewin , "%d" , &choice);
+    noecho();
+    if(choice > 5){
+        return;
+    }
+    if(choice == 1 && macecounter !=0){
+        hero->typeofInitialGun = 1;
+    }
+    else if(choice == 2 && daggercounter != 0){
+        hero->typeofInitialGun = 2;
+    }
+    else if(choice == 3 && mwandcounter != 0){
+        hero->typeofInitialGun = 3;
+
+    }
+    else if(choice == 4 && narrowcounter != 0 ){
+        hero->typeofInitialGun = 4;
+    }
+    else if(choice == 5 && swordcounter != 0){
+        hero->typeofInitialGun = 5;
+    }
+
+
 }
 void foodsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT]){
     
@@ -1085,12 +1145,14 @@ int main() {
                     showingfoods(mapWin , messagewin , &hero);
                 }
                 if(isitongun(mapWin ,messagewin , hero.x , hero.y)){
-                    addtoinventory(mapWin , messagewin , &hero , hero.x , hero.y , guncontainer);
+                    addtoinventory(mapWin , messagewin , &hero , hero.x , hero.y , guncontainer );
                 }
                 break;
             case 117 :
                 addfoodhero(mapWin , &hero ,container , hero.x , hero.y);
                 break;
+            case 105:
+                changegun( mapWin ,  messagewin ,  &hero );
         }
             
 
