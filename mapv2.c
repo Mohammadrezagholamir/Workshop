@@ -52,7 +52,7 @@ typedef struct {
 } Gold;
 
 Gold goldcontainer[50];
-
+Gun guncontainer[50];
 
 typedef struct {
     int x , y ;
@@ -100,6 +100,7 @@ typedef struct {
     int goldcount;
     int gold;
     int move;
+    int typeofInitialGun;
 } Hero;
 
 typedef struct {
@@ -334,7 +335,8 @@ void typeroom(WINDOW* win, Room* rooms, int roomcount) {
 
 
 }
-void gunsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT]){
+void gunsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT] , Gun* guncontainer){
+    int count = 0;
     for(int i=0 ; i<roomcount ; i++){
     
         int guncounter = rand() %2+1;
@@ -373,14 +375,41 @@ void gunsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_W
             rooms[i].guns[j].x = xrnd;
             rooms[i].guns[j].y = yrnd;
             rooms[i].guns[j].type = typeg;
+            guncontainer[count].x =xrnd;
+            guncontainer[count].y = yrnd;
+            guncontainer[count].type =typeg;
+            count++;
         }
 
     }
-
-
+}
+int isitongun(WINDOW* win , WINDOW* messagewin , int x , int y ){
+    chtype ch = mvwinch(win , y , x);
+    if((char)ch == '4' || (char)ch == '!' || (char)ch == '1' || (char)ch == '/' || (char)ch =='I'){
+        return 1;
+    }
+    return 0;
     
 }
+void addtoinventory(WINDOW* win , WINDOW* messagewin , Hero* hero , int x , int y ,Gun* guncontainer){
+    wclear(messagewin);
+    for(int i=0 ; i<50 ; i++){
+        if(guncontainer[i].x == x && guncontainer[i].y == y){
+            hero->guns[hero->guncount].x = x;
+            hero->guns[hero->guncount].y = y;
+            hero->guns[hero->guncount].type = guncontainer[i].type;
+            hero->guncount++;
+            mvwprintw(messagewin , 0 , 0 , "You add gun type : %d" , guncontainer[i].type);
+            wrefresh(messagewin);
+            sleep(2);
+            container[x][y] = '.';
+            break;
+            
+        }
+    }
+}
 void foodsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT]){
+    
     for(int i =0 ; i<roomcount ; i++){
         int foodcounter = rand() % 2+1;
         rooms[i].foodCount = foodcounter;
@@ -416,6 +445,7 @@ void foodsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_
             rooms[i].foods[j].y =yrnd;
             rooms[i].foods[j].type = typef;
 
+
         }
     }
 
@@ -448,7 +478,7 @@ void isitingold(WINDOW* win,WINDOW* messagewin ,int x , int y , Hero* hero , Gol
         wclear(messagewin);
         for(int i= 0 ; i<50 ; i++){
             if( x == goldcontainer[i].x && y== goldcontainer[i].y){
-                mvwprintw(messagewin , 0 , 0 , "you earn %d golds!" , goldcontainer[i].value);
+                mvwprintw(messagewin , 0 , 0 , "you earned %d golds!" , goldcontainer[i].value);
                 hero->goldcount += goldcontainer[i].value;
                 container[x][y]='.';
             }
@@ -734,7 +764,7 @@ bool isitpassdoor(WINDOW* win, WINDOW* messagewin, int x, int y, Pdoor* pdoor) {
     }
 }
 void Dheartmove(Hero* hero , WINDOW* messagewin){
-    if((hero->move) % 25 == 0){
+    if((hero->move) % 50 == 0){
         hero->heart --;
         mvwprintw(messagewin ,0,0, "Hero heart : %d" , hero->heart);
         
@@ -744,10 +774,11 @@ void Dheartmove(Hero* hero , WINDOW* messagewin){
 }
 
 
-void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Stair* stair, bool seen[MAP_WIDTH][MAP_HEIGHT], char container[MAP_WIDTH][MAP_HEIGHT] , Pdoor* pdoor , Gold* goldcontainer) {
+void generateFloor(WINDOW* mapWin, WINDOW* messagewin, Room rooms[], int* roomCount, Hero* hero, Stair* stair, bool seen[MAP_WIDTH][MAP_HEIGHT], char container[MAP_WIDTH][MAP_HEIGHT] , Pdoor* pdoor , Gold* goldcontainer) {
     floorcount++;
     werase(mapWin);
-
+    mvwprintw(messagewin ,0,0, "You are in floor %d" , floorcount);
+    wrefresh(messagewin);
     start_color();
     init_pair(1 , COLOR_RED , COLOR_BLACK);
 
@@ -755,8 +786,9 @@ void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Sta
     memset(seen, 0, sizeof(seen)); // بازنشانی seen
     memset(container, '.', sizeof(container)); // بازنشانی container
 
-    // تولید اتاق‌ها
-    while (*roomCount < MAX_ROOMS) {
+    int tryes =0 ; 
+    while (*roomCount < MAX_ROOMS && tryes<1000) {
+        tryes++;
         Room newRoom;
         newRoom.width = rand() % (MAX_ROOM_SIZE - MIN_ROOM_SIZE + 1) + MIN_ROOM_SIZE;
         newRoom.height = rand() % (MAX_ROOM_SIZE - MIN_ROOM_SIZE + 1) + MIN_ROOM_SIZE;
@@ -785,7 +817,7 @@ void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Sta
     }
     foodsinroom(mapWin , rooms , *roomCount , container);
     goldsinroom(mapWin , rooms , *roomCount , container , goldcontainer);
-    gunsinroom(mapWin , rooms ,*roomCount ,container);
+    gunsinroom(mapWin , rooms ,*roomCount ,container , guncontainer);
     // قرار دادن درها
     for (int i = 0; i < MAP_WIDTH; i++) {
         for (int j = 0; j < MAP_HEIGHT; j++) {
@@ -858,13 +890,14 @@ int main() {
     hero.food = 0;
     hero.heart = 10;
     hero.move = 1;
+    hero.typeofInitialGun = 1;
     Stair stair;
     Pdoor pdoor;
     Room rooms[MAX_ROOMS];
     int roomCount = 0;
 
     // تولید طبقه‌ی اول
-    generateFloor(mapWin, rooms, &roomCount, &hero, &stair, seen, container , &pdoor , goldcontainer);
+    generateFloor(mapWin ,messagewin, rooms, &roomCount, &hero, &stair, seen, container , &pdoor , goldcontainer);
    
     keypad(stdscr, TRUE);
     wrefresh(mapWin);
@@ -1051,8 +1084,13 @@ int main() {
                     
                     showingfoods(mapWin , messagewin , &hero);
                 }
+                if(isitongun(mapWin ,messagewin , hero.x , hero.y)){
+                    addtoinventory(mapWin , messagewin , &hero , hero.x , hero.y , guncontainer);
+                }
+                break;
             case 117 :
                 addfoodhero(mapWin , &hero ,container , hero.x , hero.y);
+                break;
         }
             
 
@@ -1063,7 +1101,7 @@ int main() {
         wrefresh(messagewin);
         if (stair.exists && hero.x == stair.x && hero.y == stair.y) {
             
-            generateFloor(mapWin, rooms, &roomCount, &hero, &stair, seen, container , &pdoor , goldcontainer);
+            generateFloor(mapWin, messagewin, rooms, &roomCount, &hero, &stair, seen, container , &pdoor , goldcontainer);
         }
 
         // به‌روزرسانی نقشه و موقعیت قهرمان
