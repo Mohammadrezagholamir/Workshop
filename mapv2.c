@@ -6,7 +6,13 @@
 #include <unistd.h>
 /*
 خیلی مهمه که برای ران شدن کد حتما صفحتون بزرگ باشه
-
+need to add :
+1 . login as guest
+2 . change hero color
+3 . savein map nd other things
+4 . show message when hero enter new room and floor
+5 . adding traps
+6 . 
 
 */
 #define MAP_WIDTH 100
@@ -31,6 +37,10 @@ char container[MAP_WIDTH][MAP_HEIGHT];
 char container2[MAP_WIDTH][MAP_HEIGHT];
 char container3[MAP_WIDTH][MAP_HEIGHT];
 char container4[MAP_WIDTH][MAP_HEIGHT];
+typedef struct {
+    int x , y;
+    int type;
+} Gun;
 typedef struct {
     int x ,y;
     int type;
@@ -81,8 +91,10 @@ typedef struct {
     char HeroColor[30];
     int heart;
     int food;
+    int guncount;
     int typefood;
     Food foods[30];
+    Gun guns[30];
     BGold bgolds[30];
     int bgoldcounter;
     int goldcount;
@@ -94,8 +106,9 @@ typedef struct {
     int x, y;
     int width, height;
     bool haspillar;
-    char typeofroom[30];
-    
+    int roomtype;
+    int guncount;
+    Gun guns[30];
     Gold golds[30];
     int bgoldcounter;
     int goldcount;
@@ -145,11 +158,13 @@ void updateVisibility(WINDOW* win, Hero hero, int radius, bool seen[MAP_WIDTH][M
 void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[MAP_WIDTH][MAP_HEIGHT]) {
     start_color();
     init_pair(1 , COLOR_RED , COLOR_BLACK);
-    init_pair(2 , COLOR_BLUE , COLOR_BLACK);
+    init_pair(2 , COLOR_MAGENTA , COLOR_BLACK);
     init_pair(3 , COLOR_CYAN , COLOR_BLACK);
     init_pair(4 , COLOR_YELLOW , COLOR_BLACK);
     init_pair(5 , COLOR_GREEN , COLOR_BLACK);
-    init_pair(6, COLOR_MAGENTA , COLOR_BLACK);
+    init_pair(6, COLOR_BLUE , COLOR_BLACK);
+    
+    
 
     for (int x = 0; x < MAP_WIDTH; x++) {
         for (int y = 0; y < MAP_HEIGHT; y++) {
@@ -179,7 +194,7 @@ void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[M
                     wattroff(win , COLOR_PAIR(6)); 
 
                 }
-                else if((char)ch =='@'){
+                else if((char)ch =='@' || (char)ch == '!' || (char)ch == '1' || (char)ch == '4' || (char)ch == 'I' || (char)ch == '/'){
                     wattron(win , COLOR_PAIR(1));
                     mvwaddch(win , y ,x , ch);
                     wattroff(win , COLOR_PAIR(1));
@@ -189,6 +204,7 @@ void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[M
                     mvwaddch(win , y , x ,ch);
                     wattroff(win , COLOR_PAIR(4));
                 }
+
  // Display the actual character
             } else {
                 mvwaddch(win, y, x, ' ');  // Display empty space
@@ -315,13 +331,54 @@ bool isInsideRoom(int x, int y, Room* rooms, int roomCount) {
 }
 
 void typeroom(WINDOW* win, Room* rooms, int roomcount) {
-    int array[4];
-    for (int i = 0; i < 4; i++) {
-        array[i] = rand() % roomcount;
+
+
+}
+void gunsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT]){
+    for(int i=0 ; i<roomcount ; i++){
+    
+        int guncounter = rand() %2+1;
+        rooms[i].guncount = guncounter;
+        for(int j=0 ; j<guncounter ; j++){
+            int xrnd = rooms[i].x + 1 + rand() % (rooms[i].width - 2);
+            int yrnd = rooms[i].y + 1 + rand() % (rooms[i].height - 2);
+            int typeg = rand() % 5 + 1;
+            switch(typeg){
+                case 1:
+                    mvwaddch(win , yrnd , xrnd ,'4' );
+                    container[xrnd][yrnd]= '4';
+                    wrefresh(win);
+                    break;
+                case 2 :
+                    mvwaddch(win , yrnd , xrnd ,'!' );
+                    container[xrnd][yrnd]= '!';
+                    wrefresh(win); 
+                    break; 
+                case 3:
+                    mvwaddch(win , yrnd , xrnd ,'I' );
+                    container[xrnd][yrnd]= 'I';
+                    wrefresh(win);
+                    break; 
+                case 4 :
+                    mvwaddch(win , yrnd , xrnd ,'/' );
+                    container[xrnd][yrnd]= '/';
+                    wrefresh(win);
+                    break;
+                case 5:
+                    mvwaddch(win , yrnd , xrnd ,'1' );
+                    container[xrnd][yrnd]= '1';
+                    wrefresh(win);
+                    break;
+            }
+            rooms[i].guns[j].x = xrnd;
+            rooms[i].guns[j].y = yrnd;
+            rooms[i].guns[j].type = typeg;
+        }
+
     }
-    for (int i = 0; i < 4; i++) {
-        strcpy(rooms[array[i]].typeofroom, "Regular Room");
-    }
+
+
+    
 }
 void foodsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT]){
     for(int i =0 ; i<roomcount ; i++){
@@ -493,6 +550,20 @@ void showingfoods(WINDOW* win , WINDOW* messagewin , Hero* hero){
     noecho();
 
     if (choice >= 0 && choice < count) {
+        if(strcmp(typecontainer[choice] , "Apple") == 0){
+            hero->heart += 2;
+
+        }
+        else if(strcmp(typecontainer[choice] , "Golden Apple") == 0){
+            hero->heart +=4;
+        }
+        else if(strcmp(typecontainer[choice] , "Magic Apple") == 0){
+            hero->heart +=6;
+
+        }
+        else if(strcmp(typecontainer[choice] , "Poison Apple") == 0){
+            hero->heart -= 3;
+        }
         mvwprintw(messagewin, count + 2, 0, "Eating food %d...", choice);
         wrefresh(messagewin);
 
@@ -662,9 +733,13 @@ bool isitpassdoor(WINDOW* win, WINDOW* messagewin, int x, int y, Pdoor* pdoor) {
         }
     }
 }
-void Dheartmove(Hero* hero){
-    if((hero->move) % 10 == 0){
+void Dheartmove(Hero* hero , WINDOW* messagewin){
+    if((hero->move) % 25 == 0){
         hero->heart --;
+        mvwprintw(messagewin ,0,0, "Hero heart : %d" , hero->heart);
+        
+        wrefresh(messagewin);
+        sleep(2);
     }
 }
 
@@ -710,6 +785,7 @@ void generateFloor(WINDOW* mapWin, Room rooms[], int* roomCount, Hero* hero, Sta
     }
     foodsinroom(mapWin , rooms , *roomCount , container);
     goldsinroom(mapWin , rooms , *roomCount , container , goldcontainer);
+    gunsinroom(mapWin , rooms ,*roomCount ,container);
     // قرار دادن درها
     for (int i = 0; i < MAP_WIDTH; i++) {
         for (int j = 0; j < MAP_HEIGHT; j++) {
@@ -818,7 +894,7 @@ int main() {
                 if (isitwallorO(mapWin, hero.x, hero.y + 1) && isitpassdoor(mapWin ,messagewin , hero.x , hero.y + 1 , &pdoor)) {
                     hero.y++;
                     hero.move ++;
-                    Dheartmove(&hero);
+                    Dheartmove(&hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -837,7 +913,7 @@ int main() {
                 if(isitwallorO(mapWin , hero.x , hero.y - 1 ) && isitpassdoor(mapWin ,messagewin , hero.x  , hero.y - 1, &pdoor)){
                     hero.y--;
                     hero.move++;
-                    Dheartmove(&hero);
+                    Dheartmove(&hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -856,7 +932,7 @@ int main() {
                 if(isitwallorO(mapWin , hero.x + 1 , hero.y ) && isitpassdoor(mapWin ,messagewin , hero.x + 1 , hero.y , &pdoor)){
                     hero.x++;
                     hero.move++;
-                    Dheartmove(&hero);
+                    Dheartmove(&hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -875,7 +951,7 @@ int main() {
                 if(isitwallorO(mapWin , hero.x - 1 , hero.y ) && isitpassdoor(mapWin ,messagewin , hero.x - 1 , hero.y , &pdoor)){
                     hero.x--;
                     hero.move++;
-                    Dheartmove(&hero);
+                    Dheartmove(&hero , messagewin);
                      if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -895,7 +971,7 @@ int main() {
                     hero.x--;
                     hero.y--;
                     hero.move++;
-                    Dheartmove(&hero);
+                    Dheartmove(&hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -915,7 +991,7 @@ int main() {
                     hero.x ++;
                     hero.y --;
                     hero.move++;
-                    Dheartmove(&hero);
+                    Dheartmove(&hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -935,7 +1011,7 @@ int main() {
                     hero.x --;
                     hero.y++;
                     hero.move++;
-                    Dheartmove(&hero);
+                    Dheartmove(&hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -955,7 +1031,7 @@ int main() {
                     hero.x++;
                     hero.y++;
                     hero.move++;
-                    Dheartmove(&hero);
+                    Dheartmove(&hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -986,7 +1062,7 @@ int main() {
         isitingold( mapWin, messagewin ,hero.x , hero.y ,  &hero , goldcontainer);
         wrefresh(messagewin);
         if (stair.exists && hero.x == stair.x && hero.y == stair.y) {
-            floorcount++;
+            
             generateFloor(mapWin, rooms, &roomCount, &hero, &stair, seen, container , &pdoor , goldcontainer);
         }
 
