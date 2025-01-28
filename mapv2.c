@@ -89,8 +89,11 @@ typedef struct {
     bool active;
 } Trap;
 
+Trap trapcounter[30];
+
 typedef struct {
-    char type[30];
+    int x , y;
+    int type;
 } Poison;
 
 typedef struct {
@@ -114,18 +117,22 @@ typedef struct {
     int x, y;
     int width, height;
     bool haspillar;
+    // has 3 types: Regular , treasure , poison :
     int roomtype;
+    //Gun and Gold
     int guncount;
     Gun guns[30];
     Gold golds[30];
     int bgoldcounter;
     int goldcount;
-    bool hastrap;
-    int trapcount;
-    Trap traps;
-
+    //traps
+    
+    
+    //Foods
     int foodCount;
     Food foods[20];
+    int trapcount;
+    Trap traps[30];
 
 } Room;
 void revealRoom(Room room, bool seen[MAP_WIDTH][MAP_HEIGHT]) {
@@ -163,14 +170,8 @@ void updateVisibility(WINDOW* win, Hero hero, int radius, bool seen[MAP_WIDTH][M
     }
 }
 
-void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[MAP_WIDTH][MAP_HEIGHT]) {
-    start_color();
-    init_pair(1 , COLOR_RED , COLOR_BLACK);
-    init_pair(2 , COLOR_MAGENTA , COLOR_BLACK);
-    init_pair(3 , COLOR_CYAN , COLOR_BLACK);
-    init_pair(4 , COLOR_YELLOW , COLOR_BLACK);
-    init_pair(5 , COLOR_GREEN , COLOR_BLACK);
-    init_pair(6, COLOR_BLUE , COLOR_BLACK);
+void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[MAP_WIDTH][MAP_HEIGHT] , Pdoor* pdoor) {
+
     
     
 
@@ -180,7 +181,7 @@ void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[M
                 
 
                 chtype ch = container[x][y];
-                if((char)ch == '.'){
+                if((char)ch == '.' || (char)ch == '^'){
                     wattron(win , COLOR_PAIR(2));
                     mvwaddch(win, y, x, ch); 
                     wattroff(win , COLOR_PAIR(2));
@@ -202,7 +203,7 @@ void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[M
                     wattroff(win , COLOR_PAIR(6)); 
 
                 }
-                else if((char)ch =='@' || (char)ch == '!' || (char)ch == '1' || (char)ch == '4' || (char)ch == 'I' || (char)ch == '/'){
+                else if( (char)ch == '!' || (char)ch == '1' || (char)ch == '4' || (char)ch == 'I' || (char)ch == '/'){
                     wattron(win , COLOR_PAIR(1));
                     mvwaddch(win , y ,x , ch);
                     wattroff(win , COLOR_PAIR(1));
@@ -212,7 +213,17 @@ void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[M
                     mvwaddch(win , y , x ,ch);
                     wattroff(win , COLOR_PAIR(4));
                 }
+                else if((char)ch =='@' && pdoor->open == true){
+                    wattron(win , COLOR_PAIR(5));
+                    mvwaddch(win , y ,x , ch);
+                    wattroff(win , COLOR_PAIR(5));
 
+                }
+                else if((char)ch == '@' && pdoor->open == false){
+                    wattron(win , COLOR_PAIR(1));
+                    mvwaddch(win , y ,x , ch);
+                    wattroff(win , COLOR_PAIR(1)); 
+                }
  // Display the actual character
             } else {
                 mvwaddch(win, y, x, ' ');  // Display empty space
@@ -259,27 +270,43 @@ bool haspillar(Room* room) {
     return oneOrTwo() == 2;
 }
 
-void placeTraps(Room* room) {
-    if (oneOrTwo() == 2) { // 50% chance to place a trap
-        room->hastrap = true;
-        room->trapcount = 1; // Number of traps: one
-        room->traps.x = room->x + 1 + rand() % (room->width - 2); // Random trap location
-        room->traps.y = room->y + 1 + rand() % (room->height - 2);
-        room->traps.active = false; // Trap is inactive until the hero steps on it
-    } else {
-        room->hastrap = false;
-        room->trapcount = 0; // No traps
+void placeTraps(Room* rooms , Trap* trapcounter) {
+    int num = 0 ;
+    for(int i=0 ; i<2 ; i++){
+        rooms[i].trapcount = rand() % 2 + 1;
+        int counter=rooms[i].trapcount;
+
+        Room room = rooms[i];
+        for(int j=0 ; j<counter ; j++){
+            int xrnd = room.x + 1 + rand() % (room.width - 2);
+            int yrnd = room.y + 1 + rand() % (room.height - 2);
+            rooms[i].traps[j].x = xrnd;
+            rooms[i].traps[j].y =yrnd;
+            rooms[i].traps[j].active = false;
+            trapcounter[num].x = xrnd;
+            trapcounter[num].y = yrnd;
+            trapcounter[num].active = false;
+            num++;
+        }
+
     }
 }
 
-void isontrap(WINDOW* win, Room* rooms, int roomCount, Hero* hero) {
-    for (int i = 0; i < roomCount; i++) {
-        Room* room = &rooms[i];
-        if (room->hastrap && room->traps.active == false &&
-            hero->x == room->traps.x && hero->y == room->traps.y) {
-            // Display the trap at the hero's location
-            mvwaddch(win, hero->y, hero->x, '^');
-            room->traps.active = true; // Trap is activated
+void isontrap(WINDOW* win,WINDOW* messagewin , Room* rooms, int roomCount, Hero* hero  ,Trap* trapcounter , char container[MAP_WIDTH][MAP_HEIGHT]) {
+    for(int i=0 ; i<50 ; i++){
+        if(hero->x == trapcounter[i].x  && hero->y == trapcounter[i].y){
+            trapcounter[i].active = true;
+            hero->heart -= 2;
+            wclear(messagewin);
+            mvwprintw(messagewin , 0 ,0 , "You heart!");
+            mvwprintw(messagewin ,1 ,0 ,"%d" , hero->heart);
+            mvwaddch(win , trapcounter[i].y , trapcounter[i].x , '^');
+            container[trapcounter[i].x][trapcounter[i].y] = '^';
+
+            wrefresh(messagewin);
+            sleep(2);
+
+
         }
     }
 }
@@ -338,10 +365,7 @@ bool isInsideRoom(int x, int y, Room* rooms, int roomCount) {
     return false;
 }
 
-void typeroom(WINDOW* win, Room* rooms, int roomcount) {
 
-
-}
 void gunsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT] , Gun* guncontainer){
     int count = 0;
     for(int i=0 ; i<roomcount ; i++){
@@ -513,7 +537,7 @@ void foodsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_
 void goldsinroom(WINDOW* win  , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT] , Gold* goldcontainer){
     int counter = 0;
     for(int i= 0 ; i< roomcount ; i++){
-        int goldcount = rand() % 1 +1 ;
+        int goldcount = rand() % 2 +1 ;
         rooms[i].goldcount = goldcount;
         for(int j =0 ; j<goldcount ; j++){
             int xrnd = rooms[i].x + 1 + rand() % (rooms[i].width - 2);
@@ -688,6 +712,14 @@ void drawRoom(WINDOW* win, Room room) {
     }
     drawpillar(win, room);
 }
+void roomtype(WINDOW* win , Room* rooms , int roomcount){
+    if(floorcount == 4){
+
+    }
+    else {
+
+    }
+}
 
 void drawCorridor(WINDOW* win, int x1, int y1, int x2, int y2, Room* rooms, int roomCount) {
     int x = x1, y = y1;
@@ -776,9 +808,10 @@ void isonpasswordkey(WINDOW* win, WINDOW* messagewin, int x, int y, Pdoor* pdoor
 
 
 bool isitpassdoor(WINDOW* win, WINDOW* messagewin, int x, int y, Pdoor* pdoor) {
+
     wclear(messagewin);
     chtype ch = mvwinch(win, y, x);
-    if ((char)ch == '@'){
+    if ((char)ch == '@' && pdoor->open == false ){
         if (pdoor->alwaysclose == true) {
             attron(COLOR_PAIR(1));
              mvwprintw(messagewin, 0, 0, "The door is permanently locked!");
@@ -802,6 +835,9 @@ bool isitpassdoor(WINDOW* win, WINDOW* messagewin, int x, int y, Pdoor* pdoor) {
 
                 if (input == pdoor->password) {
                     pdoor->open = true;
+                    wattron(win , COLOR_PAIR(5));
+                    mvwaddch(win , y ,x , '@');
+                    wattroff(win , COLOR_PAIR(5));
                     mvwprintw(messagewin, 2, 0, "Access granted!");
                     wrefresh(messagewin);
                     sleep(2);
@@ -822,6 +858,7 @@ bool isitpassdoor(WINDOW* win, WINDOW* messagewin, int x, int y, Pdoor* pdoor) {
             return false;
         }
     }
+    return true;
 }
 void Dheartmove(Hero* hero , WINDOW* messagewin){
     if((hero->move) % 50 == 0){
@@ -873,8 +910,9 @@ void generateFloor(WINDOW* mapWin, WINDOW* messagewin, Room rooms[], int* roomCo
             int currY = rooms[i].y + rooms[i].height / 2;
             drawCorridor(mapWin, prevX, prevY, currX, currY, rooms, *roomCount);
         }
-        placeTraps(&rooms[i]);
+        
     }
+    placeTraps(rooms , trapcounter);
     foodsinroom(mapWin , rooms , *roomCount , container);
     goldsinroom(mapWin , rooms , *roomCount , container , goldcontainer);
     gunsinroom(mapWin , rooms ,*roomCount ,container , guncontainer);
@@ -935,8 +973,11 @@ int main() {
     curs_set(0);
     start_color();
     init_pair(1 , COLOR_RED , COLOR_BLACK);
-    init_pair(2 , COLOR_GREEN , COLOR_BLACK);
-    init_pair(3 , COLOR_YELLOW , COLOR_BLACK);
+    init_pair(2 , COLOR_MAGENTA , COLOR_BLACK);
+    init_pair(3 , COLOR_CYAN , COLOR_BLACK);
+    init_pair(4 , COLOR_YELLOW , COLOR_BLACK);
+    init_pair(5 , COLOR_GREEN , COLOR_BLACK);
+    init_pair(6, COLOR_BLUE , COLOR_BLACK);
 
     WINDOW* mapWin = newwin(MAP_HEIGHT + 2, MAP_WIDTH + 2, 0, 0);
     WINDOW* messagewin = newwin(MAP_HEIGHT + 2, 30, 0, MAP_WIDTH + 2); // مکان و ابعاد جدید
@@ -966,16 +1007,16 @@ int main() {
     int c;
     do {
         if(floorcount == 1){
-            drawSeenMap(mapWin, container, seen);
+            drawSeenMap(mapWin, container, seen , &pdoor);
         }
         if(floorcount == 2){
-            drawSeenMap(mapWin, container, seen2);
+            drawSeenMap(mapWin, container, seen2 , &pdoor);
         }
         if(floorcount == 3){
-            drawSeenMap(mapWin, container, seen3);
+            drawSeenMap(mapWin, container, seen3 , &pdoor);
         }
         if(floorcount == 4){
-            drawSeenMap(mapWin, container, seen4);
+            drawSeenMap(mapWin, container, seen4 , &pdoor);
         }
         c = getch();
         int prevX = hero.x;
@@ -1157,7 +1198,7 @@ int main() {
             
 
         
-        isontrap(mapWin, rooms, roomCount, &hero);
+        isontrap(mapWin,messagewin , rooms, roomCount, &hero , trapcounter , container);
         isonpasswordkey(mapWin , messagewin , hero.x , hero.y , &pdoor);
         isitingold( mapWin, messagewin ,hero.x , hero.y ,  &hero , goldcontainer);
         wrefresh(messagewin);
