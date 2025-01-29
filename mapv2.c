@@ -4,6 +4,7 @@
 #include <time.h>
 #include <string.h>
 #include <unistd.h>
+#include <locale.h>
 /*
 خیلی مهمه که برای ران شدن کد حتما صفحتون بزرگ باشه
 need to add :
@@ -67,6 +68,7 @@ typedef struct {
     int x , y ;
 } BGold;
 
+BGold bgoldcontainer[50];
 
 int floorcount = 0;
 
@@ -129,6 +131,7 @@ typedef struct {
     int guncount;
     Gun guns[30];
     Gold golds[30];
+    BGold bgolds[50];
     int bgoldcounter;
     int goldcount;
     //traps
@@ -178,70 +181,199 @@ void updateVisibility(WINDOW* win, Hero hero, int radius, bool seen[MAP_WIDTH][M
     }
 }
 
-void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[MAP_WIDTH][MAP_HEIGHT] , Pdoor* pdoor , Room* rooms) {
+void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[MAP_WIDTH][MAP_HEIGHT] , Pdoor* pdoor , Room* rooms , int roomcount) {
 
     
     
 
     for (int x = 0; x < MAP_WIDTH; x++) {
         for (int y = 0; y < MAP_HEIGHT; y++) {
-            if (seen[x][y]) {
+            int roomnumber = inside(x , y ,rooms ,roomcount );
+            if(roomnumber != -1 && rooms[roomnumber].typeroom == 3){
+                if (seen[x][y]) {
+                    
+                    
+
+                    chtype ch = container[x][y];
+                    if((char)ch == '.' || (char)ch == '^'){
+                        wattron(win , COLOR_PAIR(2));
+                        mvwaddch(win, y, x, ch); 
+                        wattroff(win , COLOR_PAIR(2));
+
+                    }
+                    else if((char)ch == '|' || (char)ch == '_' || (char)ch == 'O' || (char)ch == '&' || (char)ch == '+'){
+                        wattron(win , COLOR_PAIR(4));
+                        mvwaddch(win, y, x, ch); 
+                        wattroff(win , COLOR_PAIR(4));
+                    }
+                    else if((char)ch == 'A' || (char)ch == 'M' || (char)ch == 'G' || (char)ch == 'K' || (char)ch == 'X' ){
+                        wattron(win , COLOR_PAIR(5));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(5));
+                    }
+                    else if((char)ch =='#' || (char)ch == '>'){
+                        wattron(win , COLOR_PAIR(6));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(6)); 
+
+                    }
+                    else if( (char)ch == '!' || (char)ch == '1' || (char)ch == '4' || (char)ch == 'I' || (char)ch == '/'){
+                        wattron(win , COLOR_PAIR(1));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(1));
+                    }
+                    else if((char)ch =='$'){
+                        wattron(win ,COLOR_PAIR(4));
+                        mvwaddch(win , y , x ,ch);
+                        wattroff(win , COLOR_PAIR(4));
+                    }
+                    else if((char)ch =='@' && pdoor->open == true){
+                        wattron(win , COLOR_PAIR(5));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(5));
+
+                    }
+                    else if((char)ch == '@' && pdoor->open == false){
+                        wattron(win , COLOR_PAIR(1));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(1)); 
+                    }
+                    else if((char)ch == 'D' || (char)ch == 'S'|| (char)ch == 'C' ){
+                        wattron(win , COLOR_PAIR(7));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(7));
+                    }
+    // Display the actual character
+                } else {
+                    mvwaddch(win, y, x, ' ');  // Display empty space
+                }
+            }
+            else if(roomnumber != -1 && rooms[roomnumber].typeroom == 2){
                 
+                if (seen[x][y]) {
+                    
+                    
 
-                chtype ch = container[x][y];
-                if((char)ch == '.' || (char)ch == '^'){
-                    wattron(win , COLOR_PAIR(2));
-                    mvwaddch(win, y, x, ch); 
-                    wattroff(win , COLOR_PAIR(2));
+                    chtype ch = container[x][y];
+                    if((char)ch == '.' || (char)ch == '^'){
+                        wattron(win , COLOR_PAIR(2));
+                        mvwaddch(win, y, x, ch); 
+                        wattroff(win , COLOR_PAIR(2));
 
-                }
-                else if((char)ch == '|' || (char)ch == '_' || (char)ch == 'O' || (char)ch == '&' || (char)ch == '+'){
-                    wattron(win , COLOR_PAIR(3));
-                    mvwaddch(win, y, x, ch); 
-                    wattroff(win , COLOR_PAIR(3));
-                }
-                else if((char)ch == 'A' || (char)ch == 'M' || (char)ch == 'G' || (char)ch == 'K' ){
-                    wattron(win , COLOR_PAIR(5));
-                    mvwaddch(win , y ,x , ch);
-                    wattroff(win , COLOR_PAIR(5));
-                }
-                else if((char)ch =='#' || (char)ch == '>'){
-                    wattron(win , COLOR_PAIR(6));
-                    mvwaddch(win , y ,x , ch);
-                    wattroff(win , COLOR_PAIR(6)); 
+                    }
+                    else if((char)ch == '|' || (char)ch == '_' || (char)ch == 'O' || (char)ch == '&' || (char)ch == '+'){
+                        wattron(win , COLOR_PAIR(2));
+                        mvwaddch(win, y, x, ch); 
+                        wattroff(win , COLOR_PAIR(2));
+                    }
+                    else if((char)ch == 'A' || (char)ch == 'M' || (char)ch == 'G' || (char)ch == 'K' ||(char)ch == 'X'){
+                        wattron(win , COLOR_PAIR(5));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(5));
+                    }
+                    else if((char)ch =='#' || (char)ch == '>'){
+                        wattron(win , COLOR_PAIR(6));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(6)); 
 
-                }
-                else if( (char)ch == '!' || (char)ch == '1' || (char)ch == '4' || (char)ch == 'I' || (char)ch == '/'){
-                    wattron(win , COLOR_PAIR(1));
-                    mvwaddch(win , y ,x , ch);
-                    wattroff(win , COLOR_PAIR(1));
-                }
-                else if((char)ch =='$'){
-                    wattron(win ,COLOR_PAIR(4));
-                    mvwaddch(win , y , x ,ch);
-                    wattroff(win , COLOR_PAIR(4));
-                }
-                else if((char)ch =='@' && pdoor->open == true){
-                    wattron(win , COLOR_PAIR(5));
-                    mvwaddch(win , y ,x , ch);
-                    wattroff(win , COLOR_PAIR(5));
+                    }
+                    else if( (char)ch == '!' || (char)ch == '1' || (char)ch == '4' || (char)ch == 'I' || (char)ch == '/'){
+                        wattron(win , COLOR_PAIR(1));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(1));
+                    }
+                    else if((char)ch =='$'){
+                        wattron(win ,COLOR_PAIR(4));
+                        mvwaddch(win , y , x ,ch);
+                        wattroff(win , COLOR_PAIR(4));
+                    }
+                    else if((char)ch =='@' && pdoor->open == true){
+                        wattron(win , COLOR_PAIR(5));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(5));
 
+                    }
+                    else if((char)ch == '@' && pdoor->open == false){
+                        wattron(win , COLOR_PAIR(1));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(1)); 
+                    }
+                    else if((char)ch == 'D' || (char)ch == 'S'|| (char)ch == 'C' ){
+                        wattron(win , COLOR_PAIR(7));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(7));
+                    }
+    // Display the actual character
+                } else {
+                    mvwaddch(win, y, x, ' ');  // Display empty space
                 }
-                else if((char)ch == '@' && pdoor->open == false){
-                    wattron(win , COLOR_PAIR(1));
-                    mvwaddch(win , y ,x , ch);
-                    wattroff(win , COLOR_PAIR(1)); 
+
+
+
+
+
+            }
+            else{
+                if (seen[x][y]) {
+                    
+                    
+
+                    chtype ch = container[x][y];
+                    if((char)ch == '.' || (char)ch == '^'){
+                        wattron(win , COLOR_PAIR(2));
+                        mvwaddch(win, y, x, ch); 
+                        wattroff(win , COLOR_PAIR(2));
+
+                    }
+                    else if((char)ch == '|' || (char)ch == '_' || (char)ch == 'O' || (char)ch == '&' || (char)ch == '+'){
+                        wattron(win , COLOR_PAIR(3));
+                        mvwaddch(win, y, x, ch); 
+                        wattroff(win , COLOR_PAIR(3));
+                    }
+                    else if((char)ch == 'A' || (char)ch == 'M' || (char)ch == 'G' || (char)ch == 'K' || (char)ch == 'X' ){
+                        wattron(win , COLOR_PAIR(5));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(5));
+                    }
+                    else if((char)ch =='#' || (char)ch == '>'){
+                        wattron(win , COLOR_PAIR(6));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(6)); 
+
+                    }
+                    else if( (char)ch == '!' || (char)ch == '1' || (char)ch == '4' || (char)ch == 'I' || (char)ch == '/'){
+                        wattron(win , COLOR_PAIR(1));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(1));
+                    }
+                    else if((char)ch =='$'){
+                        wattron(win ,COLOR_PAIR(4));
+                        mvwaddch(win , y , x ,ch);
+                        wattroff(win , COLOR_PAIR(4));
+                    }
+                    else if((char)ch =='@' && pdoor->open == true){
+                        wattron(win , COLOR_PAIR(5));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(5));
+
+                    }
+                    else if((char)ch == '@' && pdoor->open == false){
+                        wattron(win , COLOR_PAIR(1));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(1)); 
+                    }
+                    else if((char)ch == 'D' || (char)ch == 'S'|| (char)ch == 'C' ){
+                        wattron(win , COLOR_PAIR(7));
+                        mvwaddch(win , y ,x , ch);
+                        wattroff(win , COLOR_PAIR(7));
+                    }
+    // Display the actual character
+                } else {
+                    mvwaddch(win, y, x, ' ');  // Display empty space
                 }
-                else if((char)ch == 'D' || (char)ch == 'S'|| (char)ch == 'C' ){
-                    wattron(win , COLOR_PAIR(7));
-                    mvwaddch(win , y ,x , ch);
-                    wattroff(win , COLOR_PAIR(7));
-                }
- // Display the actual character
-            } else {
-                mvwaddch(win, y, x, ' ');  // Display empty space
             }
         }
+        
     }
 }
 void markseen(int x , int y , bool seen[MAP_WIDTH][MAP_HEIGHT]){
@@ -382,7 +514,16 @@ bool isInsideRoom(int x, int y, Room* rooms, int roomCount) {
     }
     return false;
 }
+int inside(int x , int y ,Room* rooms , int roomcount){
+    for (int i = 0; i < roomcount; i++) {
+        Room r = rooms[i];
+        if (x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height) {
+            return i;
+        }
+    }
+    return -1;
 
+}
 void gunsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT] , Gun* guncontainer){
     int count = 0;
     for(int i=0 ; i<roomcount ; i++){
@@ -671,6 +812,50 @@ void usepoison(WINDOW* win , WINDOW*  messagewin , Hero* hero  ){
 
 
 }
+void bgoldsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT] , BGold* bgoldcontainer){
+    int counter = 0;
+    for(int i= 0 ; i< roomcount ; i++){
+        int bgoldcount;
+        if(rooms[i].typeroom == 3){
+            bgoldcount = 2;
+        }
+        else {
+            bgoldcount = rand() % 2;
+        }
+        rooms[i].bgoldcounter = bgoldcount;
+        for(int j =0 ; j<bgoldcount ; j++){
+            int xrnd = rooms[i].x + 1 + rand() % (rooms[i].width - 2);
+            int yrnd = rooms[i].y + 1 + rand() % (rooms[i].height - 2);
+            
+            rooms[i].bgolds[j].x = xrnd ;
+            rooms[i].bgolds[j].y = yrnd;
+            
+            bgoldcontainer[counter].x =xrnd;
+            bgoldcontainer[counter].y = yrnd;
+            
+            counter ++;
+            mvwaddch(win, yrnd , xrnd , 'X');
+            container[xrnd][yrnd] = 'X';
+            wrefresh(win);            
+        }
+    }
+}
+void isitinbgold(WINDOW* win,WINDOW* messagewin ,int x , int y , Hero* hero , BGold* bgoldcontainer){
+    chtype ch = mvwinch(win , y ,x);
+    if((char)ch == 'X'){
+        wclear(messagewin);
+        for(int i= 0 ; i<50 ; i++){
+            if( x == bgoldcontainer[i].x && y== bgoldcontainer[i].y){
+                mvwprintw(messagewin , 0 , 0 , "you earned blck gold!");
+                hero->goldcount += 4;
+                container[x][y]='.';
+            }
+        }
+        
+        
+    }
+    
+}
 
 void goldsinroom(WINDOW* win  , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT] , Gold* goldcontainer){
     
@@ -704,6 +889,7 @@ void goldsinroom(WINDOW* win  , Room* rooms , int roomcount , char container[MAP
         }
     }
 }
+
 void isitingold(WINDOW* win,WINDOW* messagewin ,int x , int y , Hero* hero , Gold* goldcontainer){
     chtype ch = mvwinch(win , y ,x);
     if((char)ch == '$'){
@@ -1077,6 +1263,7 @@ void generateFloor(WINDOW* mapWin, WINDOW* messagewin, Room rooms[], int* roomCo
     roomtype(mapWin , rooms , *roomCount);
     placeTraps(rooms , trapcounter , *roomCount);
     foodsinroom(mapWin , rooms , *roomCount , container);
+    bgoldsinroom( mapWin ,  rooms , *roomCount , container,bgoldcontainer);
     goldsinroom(mapWin , rooms , *roomCount , container , goldcontainer);
     poisonsinroom(mapWin , rooms , *roomCount , container , poisoncontainer);
     gunsinroom(mapWin , rooms ,*roomCount ,container , guncontainer);
@@ -1129,9 +1316,33 @@ void generateFloor(WINDOW* mapWin, WINDOW* messagewin, Room rooms[], int* roomCo
     
     wrefresh(mapWin);
 }
+void save_game_binary(Hero* hero, char container[MAP_WIDTH][MAP_HEIGHT], int floorcount , WINDOW* messagewin) {
+    FILE* file = fopen("save.bin", "wb");
+    if (file == NULL) {
+        perror("خطا در باز کردن فایل برای ذخیره");
+        return;
+    }
+
+    // ذخیره اطلاعات قهرمان
+    fwrite(hero, sizeof(Hero), 1, file);
+
+    // ذخیره شماره طبقه
+    fwrite(&floorcount, sizeof(int), 1, file);
+
+    // ذخیره نقشه
+    fwrite(container, sizeof(char), MAP_WIDTH * MAP_HEIGHT, file);
+
+    fclose(file);
+    wclear(messagewin);
+    mvwprintw(messagewin, 0 , 0 , "game saved!");
+    wrefresh(messagewin);
+    sleep(1);
+    
+}
 
 int main() {
     srand(time(0));
+    setlocale(LC_ALL ,"");
     initscr();
     noecho();
     curs_set(0);
@@ -1173,16 +1384,16 @@ int main() {
     int c;
     do {
         if(floorcount == 1){
-            drawSeenMap(mapWin, container, seen , &pdoor);
+            drawSeenMap(mapWin, container, seen , &pdoor , rooms , roomCount);
         }
         if(floorcount == 2){
-            drawSeenMap(mapWin, container, seen2 , &pdoor);
+            drawSeenMap(mapWin, container, seen2 , &pdoor , rooms ,roomCount);
         }
         if(floorcount == 3){
-            drawSeenMap(mapWin, container, seen3 , &pdoor);
+            drawSeenMap(mapWin, container, seen3 , &pdoor , rooms , roomCount);
         }
         if(floorcount == 4){
-            drawSeenMap(mapWin, container, seen4 , &pdoor);
+            drawSeenMap(mapWin, container, seen4 , &pdoor ,rooms ,  roomCount);
         }
         c = getch();
         int prevX = hero.x;
@@ -1367,17 +1578,21 @@ int main() {
             case 112:
                 usepoison(mapWin, messagewin , &hero);
                 break;
+            case 's':
+                save_game_binary(&hero , container , floorcount , messagewin);
+                break;
 
         }
             
 
         chtype ch1  = mvwinch(mapWin , hero.y , hero.x);
-        if((char)ch1 != 'D' && (char)ch1 != 'S' && (char)ch1 != 'C'){
+        if((char)ch1 != 'D' && (char)ch1 != 'S' && (char)ch1 != 'C' && (char)ch1 != 'X'){
             isontrap(mapWin,messagewin , rooms, roomCount, &hero , trapcounter , container);
         }
 
         isonpasswordkey(mapWin , messagewin , hero.x , hero.y , &pdoor);
         isitingold( mapWin, messagewin ,hero.x , hero.y ,  &hero , goldcontainer);
+        isitinbgold(mapWin, messagewin, hero.x , hero.y , &hero , bgoldcontainer);
         wrefresh(messagewin);
         if (stair.exists && hero.x == stair.x && hero.y == stair.y) {
             
