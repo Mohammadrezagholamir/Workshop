@@ -10,14 +10,12 @@ need to add :
 1 . login as guest
 2 . change hero color
 3 . savein map nd other things
-
-5 . adding traps
-6 . 
+4 . add button f for moving.
 
 */
 #define MAP_WIDTH 100
 #define MAP_HEIGHT 30
-#define MIN_ROOM_SIZE 4
+#define MIN_ROOM_SIZE 6
 #define MAX_ROOM_SIZE 12
 #define MAX_ROOMS 8
 
@@ -40,7 +38,7 @@ char container4[MAP_WIDTH][MAP_HEIGHT];
 typedef struct {
     int x , y;
     int type;
-    int count;
+    
     
 } Gun;
 int macecounter = 1;
@@ -48,6 +46,9 @@ int daggercounter = 0;
 int mwandcounter = 0;
 int narrowcounter = 0;
 int swordcounter =0 ;
+int scounter = 0;
+int dcounter = 0;
+int hcounter =0;
 typedef struct {
     int x ,y;
     int type;
@@ -57,6 +58,7 @@ typedef struct {
     int x , y;
     int value;
 } Gold;
+
 
 Gold goldcontainer[50];
 Gun guncontainer[50];
@@ -91,10 +93,12 @@ typedef struct {
 
 Trap trapcounter[30];
 
-typedef struct {
-    int x , y;
+typedef struct{
+    int x ,y;
     int type;
 } Poison;
+
+Poison poisoncontainer[50];
 
 typedef struct {
     int x, y;
@@ -106,6 +110,8 @@ typedef struct {
     Food foods[30];
     Gun guns[30];
     BGold bgolds[30];
+    Poison poisons[50];
+    int poisoncount;
     int bgoldcounter;
     int goldcount;
     int gold;
@@ -118,7 +124,7 @@ typedef struct {
     int width, height;
     bool haspillar;
     // has 3 types: Regular , treasure , poison :
-    int roomtype;
+    int typeroom;
     //Gun and Gold
     int guncount;
     Gun guns[30];
@@ -133,6 +139,8 @@ typedef struct {
     Food foods[20];
     int trapcount;
     Trap traps[30];
+    Poison poisons[50];
+    int poisoncounter;
 
 } Room;
 void revealRoom(Room room, bool seen[MAP_WIDTH][MAP_HEIGHT]) {
@@ -170,7 +178,7 @@ void updateVisibility(WINDOW* win, Hero hero, int radius, bool seen[MAP_WIDTH][M
     }
 }
 
-void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[MAP_WIDTH][MAP_HEIGHT] , Pdoor* pdoor) {
+void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[MAP_WIDTH][MAP_HEIGHT] , Pdoor* pdoor , Room* rooms) {
 
     
     
@@ -224,6 +232,11 @@ void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[M
                     mvwaddch(win , y ,x , ch);
                     wattroff(win , COLOR_PAIR(1)); 
                 }
+                else if((char)ch == 'D' || (char)ch == 'S'|| (char)ch == 'C' ){
+                    wattron(win , COLOR_PAIR(7));
+                    mvwaddch(win , y ,x , ch);
+                    wattroff(win , COLOR_PAIR(7));
+                }
  // Display the actual character
             } else {
                 mvwaddch(win, y, x, ' ');  // Display empty space
@@ -270,10 +283,15 @@ bool haspillar(Room* room) {
     return oneOrTwo() == 2;
 }
 
-void placeTraps(Room* rooms , Trap* trapcounter) {
+void placeTraps(Room* rooms , Trap* trapcounter , int roomcount) {
     int num = 0 ;
-    for(int i=0 ; i<2 ; i++){
-        rooms[i].trapcount = rand() % 2 + 1;
+    for(int i=0 ; i<roomcount ; i++){
+        if(rooms[i].typeroom == 3){
+            rooms[i].trapcount = 3;
+        }
+        else{
+            rooms[i].trapcount = rand() % 2;
+        }
         int counter=rooms[i].trapcount;
 
         Room room = rooms[i];
@@ -364,7 +382,6 @@ bool isInsideRoom(int x, int y, Room* rooms, int roomCount) {
     }
     return false;
 }
-
 
 void gunsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT] , Gun* guncontainer){
     int count = 0;
@@ -534,10 +551,141 @@ void foodsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_
     }
 
 }
+void poisonsinroom(WINDOW* win , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT] , Poison* poisoncontainer){
+    int count = 0;
+    for(int i=0 ; i<roomcount ; i++){
+    
+        int guncounter;
+        if(rooms[i].typeroom ==2){
+            guncounter = 3;
+        }
+        else {
+            guncounter = rand() % 2;
+        }
+        rooms[i].poisoncounter = guncounter;
+        for(int j=0 ; j<guncounter ; j++){
+            int xrnd = rooms[i].x + 1 + rand() % (rooms[i].width - 2);
+            int yrnd = rooms[i].y + 1 + rand() % (rooms[i].height - 2);
+            int typeg = rand() % 3 + 1;
+            switch(typeg){
+                case 1:
+                    mvwaddch(win , yrnd , xrnd ,'S' );
+                    container[xrnd][yrnd]= 'S';
+                    wrefresh(win);
+                    break;
+                case 2 :
+                    mvwaddch(win , yrnd , xrnd ,'D' );
+                    container[xrnd][yrnd]= 'D';
+                    wrefresh(win); 
+                    break; 
+                case 3:
+                    mvwaddch(win , yrnd , xrnd ,'C' );
+                    container[xrnd][yrnd]= 'C';
+                    wrefresh(win);
+                    break; 
+
+            }
+            rooms[i].poisons[j].x = xrnd;
+            rooms[i].poisons[j].y = yrnd;
+            rooms[i].poisons[j].type = typeg;
+            poisoncontainer[count].x =xrnd;
+            poisoncontainer[count].y = yrnd;
+            poisoncontainer[count].type =typeg;
+            count++;
+        }
+
+    }
+}
+int isitonpoison(WINDOW* win , WINDOW* messagewin , int x , int y ){
+    chtype ch = mvwinch(win , y , x);
+    if((char)ch == 'D' || (char)ch == 'C' || (char)ch == 'S' ){
+        return 1;
+    }
+    return 0;
+    
+}
+
+void addtoinventoryp(WINDOW* win , WINDOW* messagewin , Hero* hero , int x , int y ,Poison* poisoncontainer ){
+    wclear(messagewin);
+    for(int i=0 ; i<50 ; i++){
+        if(poisoncontainer[i].x == x && poisoncontainer[i].y == y){
+            hero->poisons[hero->poisoncount].x = x; 
+            hero->poisons[hero->poisoncount].y = y;
+            hero->poisons[hero->poisoncount].type = poisoncontainer[i].type;
+            if(poisoncontainer[i].type == 1){
+                scounter++;
+            }
+            else if(poisoncontainer[i].type == 2){
+                dcounter++;
+            }
+            else if(poisoncontainer[i].type == 3){
+                hcounter++;
+            }
+
+            hero->poisoncount++;
+            
+            mvwprintw(messagewin , 0 , 0 , "You add poison type : %d" , poisoncontainer[i].type);
+            wrefresh(messagewin);
+            sleep(2);
+            container[x][y] = '.';
+            break;
+            
+        }
+    }
+}
+void usepoison(WINDOW* win , WINDOW*  messagewin , Hero* hero  ){
+    wclear(messagewin);
+    mvwprintw(messagewin , 0 , 0  , "YOUR POISONS : ");
+    mvwprintw(messagewin , 1 , 0 , "Speed : %d" , scounter);
+    mvwprintw(messagewin , 2 ,0 , "Damage : %d" , dcounter);
+    mvwprintw(messagewin , 3 , 0 , "Health : %d" , hcounter);
+    echo();
+    char yorn;
+    mvwprintw(messagewin , 4 , 0 ,"Use poisons? : ");
+    wscanw(messagewin , "%c" , &yorn);
+    noecho();
+    if(yorn == 'n'){
+        return;
+    }
+
+
+    int choice;
+    
+    mvwprintw(messagewin , 5 , 0 , "Enter a  number : ");
+    wscanw(messagewin , "%d" , &choice);
+    noecho();
+    if(choice > 3){
+        return;
+    }
+    if(choice == 1 && scounter !=0){
+        return;
+    }
+    else if(choice == 2 && dcounter != 0){
+        return;
+    }
+    else if(choice == 3 &&hcounter != 0){
+        return;
+
+    }
+
+
+
+}
+
 void goldsinroom(WINDOW* win  , Room* rooms , int roomcount , char container[MAP_WIDTH][MAP_HEIGHT] , Gold* goldcontainer){
+    
+    
+
+
     int counter = 0;
     for(int i= 0 ; i< roomcount ; i++){
-        int goldcount = rand() % 2 +1 ;
+        int goldcount;
+        if(rooms[i].typeroom == 3){
+            goldcount = 4;
+        }
+        else {
+            goldcount = rand() % 2 + 1;
+        }
         rooms[i].goldcount = goldcount;
         for(int j =0 ; j<goldcount ; j++){
             int xrnd = rooms[i].x + 1 + rand() % (rooms[i].width - 2);
@@ -714,9 +862,22 @@ void drawRoom(WINDOW* win, Room room) {
 }
 void roomtype(WINDOW* win , Room* rooms , int roomcount){
     if(floorcount == 4){
+        rooms[roomcount -1].typeroom = 3;
+        int poison = roomcount / 3 ; 
+        for(int i=0 ; i<poison ; i++){
+            rooms[i].typeroom = 2;
+
+        }
+        rooms[roomcount - 2].typeroom = 4;
+
 
     }
     else {
+        int poison = roomcount / 3;
+        for(int i=0 ; i<poison ; i++){
+            rooms[i].typeroom = 2;
+        }
+        rooms[roomcount - 1].typeroom = 4;
 
     }
 }
@@ -912,9 +1073,12 @@ void generateFloor(WINDOW* mapWin, WINDOW* messagewin, Room rooms[], int* roomCo
         }
         
     }
-    placeTraps(rooms , trapcounter);
+
+    roomtype(mapWin , rooms , *roomCount);
+    placeTraps(rooms , trapcounter , *roomCount);
     foodsinroom(mapWin , rooms , *roomCount , container);
     goldsinroom(mapWin , rooms , *roomCount , container , goldcontainer);
+    poisonsinroom(mapWin , rooms , *roomCount , container , poisoncontainer);
     gunsinroom(mapWin , rooms ,*roomCount ,container , guncontainer);
     // قرار دادن درها
     for (int i = 0; i < MAP_WIDTH; i++) {
@@ -978,6 +1142,8 @@ int main() {
     init_pair(4 , COLOR_YELLOW , COLOR_BLACK);
     init_pair(5 , COLOR_GREEN , COLOR_BLACK);
     init_pair(6, COLOR_BLUE , COLOR_BLACK);
+    init_color(COLOR_CYAN , 500 , 300, 0);
+    init_pair(7 , COLOR_CYAN , COLOR_BLACK);
 
     WINDOW* mapWin = newwin(MAP_HEIGHT + 2, MAP_WIDTH + 2, 0, 0);
     WINDOW* messagewin = newwin(MAP_HEIGHT + 2, 30, 0, MAP_WIDTH + 2); // مکان و ابعاد جدید
@@ -1188,17 +1354,28 @@ int main() {
                 if(isitongun(mapWin ,messagewin , hero.x , hero.y)){
                     addtoinventory(mapWin , messagewin , &hero , hero.x , hero.y , guncontainer );
                 }
+                if(isitonpoison(mapWin , messagewin , hero.x , hero.y)){
+                    addtoinventoryp(mapWin , messagewin , &hero , hero.x , hero.y , poisoncontainer);
+                }
                 break;
             case 117 :
                 addfoodhero(mapWin , &hero ,container , hero.x , hero.y);
                 break;
             case 105:
                 changegun( mapWin ,  messagewin ,  &hero );
+                break;
+            case 112:
+                usepoison(mapWin, messagewin , &hero);
+                break;
+
         }
             
 
-        
-        isontrap(mapWin,messagewin , rooms, roomCount, &hero , trapcounter , container);
+        chtype ch1  = mvwinch(mapWin , hero.y , hero.x);
+        if((char)ch1 != 'D' && (char)ch1 != 'S' && (char)ch1 != 'C'){
+            isontrap(mapWin,messagewin , rooms, roomCount, &hero , trapcounter , container);
+        }
+
         isonpasswordkey(mapWin , messagewin , hero.x , hero.y , &pdoor);
         isitingold( mapWin, messagewin ,hero.x , hero.y ,  &hero , goldcontainer);
         wrefresh(messagewin);
