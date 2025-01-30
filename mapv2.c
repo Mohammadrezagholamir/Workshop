@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <locale.h>
+
 /*
 خیلی مهمه که برای ران شدن کد حتما صفحتون بزرگ باشه
 need to add :
@@ -119,7 +120,27 @@ typedef struct {
     int gold;
     int move;
     int typeofInitialGun;
+
+
+
+    int score;
+
+    
 } Hero;
+typedef struct {
+    int x , y;
+    int health ; 
+    bool active;
+    int type;
+    int damage;
+    int moves;
+    char nmd;
+} Monster;
+int enemycount = 0;
+
+Monster monstercontainer[50];
+int enemy = 0 ;
+
 
 typedef struct {
     int x, y;
@@ -144,6 +165,9 @@ typedef struct {
     Trap traps[30];
     Poison poisons[50];
     int poisoncounter;
+
+    int monstercount;
+    Monster monsters[50];
 
 } Room;
 void revealRoom(Room room, bool seen[MAP_WIDTH][MAP_HEIGHT]) {
@@ -211,7 +235,7 @@ void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[M
                         mvwaddch(win , y ,x , ch);
                         wattroff(win , COLOR_PAIR(5));
                     }
-                    else if((char)ch =='#' || (char)ch == '>'){
+                    else if((char)ch =='#' || (char)ch == '>' || (char)ch == 'N' || (char)ch == 'E' || (char)ch == 'T' || (char)ch == 'U' || (char)ch == 'F'){
                         wattron(win , COLOR_PAIR(6));
                         mvwaddch(win , y ,x , ch);
                         wattroff(win , COLOR_PAIR(6)); 
@@ -271,7 +295,7 @@ void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[M
                         mvwaddch(win , y ,x , ch);
                         wattroff(win , COLOR_PAIR(5));
                     }
-                    else if((char)ch =='#' || (char)ch == '>'){
+                    else if((char)ch =='#' || (char)ch == '>' || (char)ch == 'N' || (char)ch == 'E' || (char)ch == 'T' || (char)ch == 'U' || (char)ch == 'F'){
                         wattron(win , COLOR_PAIR(6));
                         mvwaddch(win , y ,x , ch);
                         wattroff(win , COLOR_PAIR(6)); 
@@ -335,7 +359,7 @@ void drawSeenMap(WINDOW* win, char container[MAP_WIDTH][MAP_HEIGHT], bool seen[M
                         mvwaddch(win , y ,x , ch);
                         wattroff(win , COLOR_PAIR(5));
                     }
-                    else if((char)ch =='#' || (char)ch == '>'){
+                    else if((char)ch =='#' || (char)ch == '>' || (char)ch == 'N' || (char)ch == 'E' || (char)ch == 'T' || (char)ch == 'U' || (char)ch == 'F'){
                         wattron(win , COLOR_PAIR(6));
                         mvwaddch(win , y ,x , ch);
                         wattroff(win , COLOR_PAIR(6)); 
@@ -1023,6 +1047,206 @@ void showingfoods(WINDOW* win , WINDOW* messagewin , Hero* hero){
         return 0;
     }
 }
+void monstersinroom(WINDOW* win , Room* rooms , int roomcount , Monster* monstercontainer  , char container[MAP_WIDTH][MAP_HEIGHT] ){
+    int count =0 ;
+    for(int i=0 ; i<roomcount; i++){
+        int mon;
+        if(rooms[i].typeroom == 3){
+            mon = 3;
+        }
+        else{
+            mon = rand() % 2;
+        }
+        rooms[i].monstercount = mon;
+        for(int j=0 ; j<mon ; j++){
+            int xrnd = rooms[i].x + 1 + rand() % (rooms[i].width - 2);
+            int yrnd = rooms[i].y + 1 + rand() % (rooms[i].height - 2);
+            int typeg = rand() % 5;
+
+            switch(typeg){
+                case 1:
+                    mvwaddch(win , yrnd , xrnd , 'N');
+                    container[xrnd][yrnd] = 'N';
+                    wrefresh(win);
+                    rooms[i].monsters[j].x = xrnd;
+                    rooms[i].monsters[j].y = yrnd;
+                    rooms[i].monsters[j].type = typeg;
+                    rooms[i].monsters[j].health = 5;
+                    rooms[i].monsters[j].damage = 1;
+                    rooms[i].monsters[j].active = false;
+                    rooms[i].monsters[j].moves = 5;
+                    rooms[i].monsters[j].nmd = 'N';
+                    monstercontainer[count].nmd = 'N';
+                    monstercontainer[count].moves = 5;
+                    monstercontainer[count].x = xrnd;
+                    monstercontainer[count].y = yrnd;
+                    monstercontainer[count].type = typeg;
+                    monstercontainer[count].health = 5;
+                    monstercontainer[count].damage = 1;
+                    monstercontainer[count].active = false;
+                    count++;
+                    break;
+                
+                case 2:
+                    mvwaddch(win , yrnd , xrnd , 'F');
+                    container[xrnd][yrnd] = 'F';
+                    wrefresh(win);
+                    rooms[i].monsters[j].x = xrnd;
+                    rooms[i].monsters[j].y = yrnd;
+                    rooms[i].monsters[j].type = typeg;
+                    rooms[i].monsters[j].health = 10;
+                    rooms[i].monsters[j].damage = 2;
+                    rooms[i].monsters[j].active = false;
+                    rooms[i].monsters[j].moves = 7;
+                    rooms[i].monsters[j].nmd = 'F';
+                    monstercontainer[count].nmd = 'F';
+                    monstercontainer[count].moves = 7;
+                    monstercontainer[count].x = xrnd;
+                    monstercontainer[count].y = yrnd;
+                    monstercontainer[count].type = typeg;
+                    monstercontainer[count].health = 10;
+                    monstercontainer[count].damage = 2;
+                    monstercontainer[count].active = false;
+                    count++;
+                    break;
+
+                case 3:
+
+                    mvwaddch(win , yrnd , xrnd , 'T');
+                    container[xrnd][yrnd] = 'T';
+                    wrefresh(win);
+                    rooms[i].monsters[j].x = xrnd;
+                    rooms[i].monsters[j].y = yrnd;
+                    rooms[i].monsters[j].type = typeg;
+                    rooms[i].monsters[j].health = 15;
+                    rooms[i].monsters[j].damage = 3;
+                    rooms[i].monsters[j].active = false;
+                    rooms[i].monsters[j].moves = 8;
+                    rooms[i].monsters[j].nmd = 'T';
+                    monstercontainer[count].nmd = 'T';
+                    monstercontainer[count].moves = 8;
+                    monstercontainer[count].x = xrnd;
+                    monstercontainer[count].y = yrnd;
+                    monstercontainer[count].type = typeg;
+                    monstercontainer[count].health = 15;
+                    monstercontainer[count].damage = 3;
+                    monstercontainer[count].active = false;
+                    count++;
+                    break;
+                
+                case 4 :
+                    mvwaddch(win , yrnd , xrnd , 'E');
+                    container[xrnd][yrnd] = 'E';
+                    wrefresh(win);
+                    rooms[i].monsters[j].x = xrnd;
+                    rooms[i].monsters[j].y = yrnd;
+                    rooms[i].monsters[j].type = typeg;
+                    rooms[i].monsters[j].health = 20;
+                    rooms[i].monsters[j].damage = 4;
+                    rooms[i].monsters[j].active = false;
+                    rooms[i].monsters[j].moves = 10;
+                    rooms[i].monsters[j].nmd = 'E';
+                    monstercontainer[count].nmd = 'E';
+                    monstercontainer[count].moves = 10;
+                    monstercontainer[count].x = xrnd;
+                    monstercontainer[count].y = yrnd;
+                    monstercontainer[count].type = typeg;
+                    monstercontainer[count].health = 20;
+                    monstercontainer[count].damage = 4;
+                    monstercontainer[count].active = false;
+                    count++;
+                    break;
+
+                case 5:
+                    mvwaddch(win , yrnd , xrnd , 'U');
+                    container[xrnd][yrnd] = 'U';
+                    wrefresh(win);
+                    rooms[i].monsters[j].x = xrnd;
+                    rooms[i].monsters[j].y = yrnd;
+                    rooms[i].monsters[j].type = typeg;
+                    rooms[i].monsters[j].health = 30;
+                    rooms[i].monsters[j].damage = 5;
+                    rooms[i].monsters[j].active = false;
+                    rooms[i].monsters[j].moves = 12;
+                    rooms[i].monsters[j].nmd = 'U';
+                    monstercontainer[count].nmd = 'U';
+                    monstercontainer[count].moves = 12;
+                    monstercontainer[count].x = xrnd;
+                    monstercontainer[count].y = yrnd;
+                    monstercontainer[count].type = typeg;
+                    monstercontainer[count].health = 30;
+                    monstercontainer[count].damage = 5;
+                    monstercontainer[count].active = false;
+                    count++;
+                    break;
+
+                
+            }
+        }
+    }
+    enemy = count;
+}
+int aroundhero(Hero* hero, Monster monster) {
+    int dx = abs(hero->x - monster.x);
+    int dy = abs(hero->y - monster.y);
+    return (dx <= 1 && dy <= 1); // اگر دشمن در همسایگی قهرمان باشد
+}
+
+
+void activatemonsters(WINDOW* win, Room* rooms, int roomcount, int x, int y, Monster* monstercontainer, Hero* hero, WINDOW* messagewin) {
+    static int monster_move_counter = 0; // شمارنده برای کنترل حرکت
+    monster_move_counter++;
+
+    if (monster_move_counter % 3 != 0) { // هر ۳ حرکت یک‌بار، هیولاها حرکت کنند
+        return;
+    }
+
+    int room = inside(x, y, rooms, roomcount);
+    if (room == -1) {
+        return;
+    }
+
+    for (int i = 0; i < rooms[room].monstercount; i++) {
+        rooms[room].monsters[i].active = true;
+
+        // ذخیره موقعیت قبلی
+        int prevX = rooms[room].monsters[i].x;
+        int prevY = rooms[room].monsters[i].y;
+
+        // پاک کردن جای قبلی با مقدار اصلی نقشه
+        mvwaddch(win, prevY, prevX, container[prevX][prevY]);
+
+        // محاسبه فاصله از قهرمان
+        int distance = abs(hero->x - prevX) + abs(hero->y - prevY);
+
+        // اگر خیلی نزدیک است، کندتر حرکت کند
+        if (distance < 3 && monster_move_counter % 5 != 0) { 
+            continue;
+        }
+
+        // حرکت به سمت قهرمان
+        rooms[room].monsters[i].x += (hero->x > prevX) ? 1 : (hero->x < prevX) ? -1 : 0;
+        rooms[room].monsters[i].y += (hero->y > prevY) ? 1 : (hero->y < prevY) ? -1 : 0;
+
+        // بررسی برخورد با قهرمان
+        if (aroundhero(hero, rooms[room].monsters[i])) {
+            hero->heart -= rooms[room].monsters[i].damage;
+            mvwprintw(messagewin, 0, 0, "Monster hit you! Health: %d", hero->heart);
+            wrefresh(messagewin);
+        }
+
+        // نمایش دشمن در مکان جدید
+        mvwaddch(win, rooms[room].monsters[i].y, rooms[room].monsters[i].x, rooms[room].monsters[i].nmd);
+        wrefresh(win);
+        usleep(200000); // تاخیر بیشتر برای حرکت کندتر
+    }
+}
+
+
+    
+
+
+
 
 void drawRoom(WINDOW* win, Room room) {
     for (int i = 0; i < room.height; i++) {
@@ -1267,6 +1491,7 @@ void generateFloor(WINDOW* mapWin, WINDOW* messagewin, Room rooms[], int* roomCo
     goldsinroom(mapWin , rooms , *roomCount , container , goldcontainer);
     poisonsinroom(mapWin , rooms , *roomCount , container , poisoncontainer);
     gunsinroom(mapWin , rooms ,*roomCount ,container , guncontainer);
+    monstersinroom(mapWin, rooms , *roomCount , monstercontainer , container);
     // قرار دادن درها
     for (int i = 0; i < MAP_WIDTH; i++) {
         for (int j = 0; j < MAP_HEIGHT; j++) {
@@ -1339,6 +1564,62 @@ void save_game_binary(Hero* hero, char container[MAP_WIDTH][MAP_HEIGHT], int flo
     sleep(1);
     
 }
+void save_explored_map(bool seen[MAP_WIDTH][MAP_HEIGHT], int floorcount , WINDOW* messagewin) {
+    char filename[20];
+    sprintf(filename, "save_floor_%d.bin", floorcount);  // ایجاد یک فایل برای هر طبقه
+
+    FILE* file = fopen(filename, "wb");
+    if (file == NULL) {
+        perror("خطا در ذخیره نقشه");
+        return;
+    }
+
+    fwrite(&floorcount, sizeof(int), 1, file);  // ذخیره‌ی شماره‌ی طبقه
+    fwrite(seen, sizeof(bool), MAP_WIDTH * MAP_HEIGHT, file);  // ذخیره وضعیت مناطق دیده‌شده
+
+    fclose(file);
+    mvwprintw(messagewin , 1 , 0 , "map saved! , please wait seconds!");
+    wrefresh(messagewin);
+    sleep(2);
+}
+void load_game_binary(Hero* hero, char container[MAP_WIDTH][MAP_HEIGHT], int* floorcount) {
+    FILE* file = fopen("save.bin", "rb");
+    if (file == NULL) {
+        perror("فایل ذخیره‌شده‌ی باینری یافت نشد");
+        return;
+    }
+
+    // خواندن اطلاعات قهرمان
+    fread(hero, sizeof(Hero), 1, file);
+
+    // خواندن شماره طبقه
+    fread(floorcount, sizeof(int), 1, file);
+
+    // خواندن نقشه
+    fread(container, sizeof(char), MAP_WIDTH * MAP_HEIGHT, file);
+
+    fclose(file);
+    
+}
+void load_explored_map(bool seen[MAP_WIDTH][MAP_HEIGHT], int* floorcount) {
+    char filename[20];
+    sprintf(filename, "save_floor_%d.bin", *floorcount);
+
+    FILE* file = fopen(filename, "rb");
+    if (file == NULL) {
+        printf("فایل ذخیره‌شده برای این طبقه یافت نشد، بازی جدیدی آغاز می‌شود.\n");
+        memset(seen, false, sizeof(bool) * MAP_WIDTH * MAP_HEIGHT);  // مقداردهی پیش‌فرض
+        return;
+    }
+
+    fread(floorcount, sizeof(int), 1, file);  // خواندن شماره‌ی طبقه از فایل
+    fread(seen, sizeof(bool), MAP_WIDTH * MAP_HEIGHT, file);  // بارگذاری وضعیت دیده‌شدن
+
+    fclose(file);
+    printf("نقشه کشف‌شده طبقه %d بارگذاری شد.\n", *floorcount);
+}
+
+
 
 int main() {
     srand(time(0));
@@ -1406,6 +1687,7 @@ int main() {
                     hero.y++;
                     hero.move ++;
                     Dheartmove(&hero , messagewin);
+                    activatemonsters(mapWin, rooms , roomCount , hero.x , hero.y , monstercontainer , &hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -1425,6 +1707,7 @@ int main() {
                     hero.y--;
                     hero.move++;
                     Dheartmove(&hero , messagewin);
+                    activatemonsters(mapWin, rooms , roomCount , hero.x , hero.y , monstercontainer , &hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -1444,6 +1727,7 @@ int main() {
                     hero.x++;
                     hero.move++;
                     Dheartmove(&hero , messagewin);
+                    activatemonsters(mapWin, rooms , roomCount , hero.x , hero.y , monstercontainer , &hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -1463,6 +1747,7 @@ int main() {
                     hero.x--;
                     hero.move++;
                     Dheartmove(&hero , messagewin);
+                    activatemonsters(mapWin, rooms , roomCount , hero.x , hero.y , monstercontainer , &hero , messagewin);
                      if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -1483,6 +1768,7 @@ int main() {
                     hero.y--;
                     hero.move++;
                     Dheartmove(&hero , messagewin);
+                    activatemonsters(mapWin, rooms , roomCount , hero.x , hero.y , monstercontainer , &hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -1503,6 +1789,7 @@ int main() {
                     hero.y --;
                     hero.move++;
                     Dheartmove(&hero , messagewin);
+                    activatemonsters(mapWin, rooms , roomCount , hero.x , hero.y , monstercontainer , &hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -1523,6 +1810,7 @@ int main() {
                     hero.y++;
                     hero.move++;
                     Dheartmove(&hero , messagewin);
+                    activatemonsters(mapWin, rooms , roomCount , hero.x , hero.y , monstercontainer , &hero , messagewin);
                     if(floorcount == 1){
                         markseen(hero.x , hero.y , seen);
                     }
@@ -1580,9 +1868,18 @@ int main() {
                 break;
             case 's':
                 save_game_binary(&hero , container , floorcount , messagewin);
+                if (floorcount == 1) {
+                    save_explored_map(seen, floorcount , messagewin);
+                } else if (floorcount == 2) {
+                    save_explored_map(seen2, floorcount  ,messagewin);
+                } else if (floorcount == 3) {
+                    save_explored_map(seen3, floorcount , messagewin);
+                } else if (floorcount == 4) {
+                    save_explored_map(seen4, floorcount , messagewin);
+                }
                 break;
 
-        }
+            }
             
 
         chtype ch1  = mvwinch(mapWin , hero.y , hero.x);
@@ -1593,6 +1890,12 @@ int main() {
         isonpasswordkey(mapWin , messagewin , hero.x , hero.y , &pdoor);
         isitingold( mapWin, messagewin ,hero.x , hero.y ,  &hero , goldcontainer);
         isitinbgold(mapWin, messagewin, hero.x , hero.y , &hero , bgoldcontainer);
+        
+        for(int i=0 ; i<enemy ; i++){
+            if(monstercontainer[i].active == true){
+                mvwaddch(mapWin, monstercontainer[i].y , monstercontainer[i].x , monstercontainer[i].nmd);
+            }
+        }
         wrefresh(messagewin);
         if (stair.exists && hero.x == stair.x && hero.y == stair.y) {
             
@@ -1616,6 +1919,7 @@ int main() {
         mvwaddch(mapWin, hero.y, hero.x, 'H');
         wrefresh(messagewin);
         wrefresh(mapWin);
+        usleep(100000);
     } while (c != 27); // خروج با دکمه ESC
 
     getch();
