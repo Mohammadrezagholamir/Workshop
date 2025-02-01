@@ -630,7 +630,7 @@ void addtoinventory(WINDOW* win , WINDOW* messagewin , Hero* hero , int x , int 
             }
             else if(guncontainer[i].type == 3){
                 if(guncontainer[i].used ==1){
-                    mwandcounter+= 15;
+                    mwandcounter+= 8;
                 }
                 else {
                     mwandcounter++;
@@ -641,7 +641,7 @@ void addtoinventory(WINDOW* win , WINDOW* messagewin , Hero* hero , int x , int 
                 if(guncontainer[i].used == 1){
 
                 
-                    narrowcounter+=12;
+                    narrowcounter+=20;
                 }
                 else{
                     narrowcounter++;
@@ -1102,6 +1102,8 @@ void monstersinroom(WINDOW* win , Room* rooms , int roomcount , Monster* monster
                     rooms[i].monsters[j].moves = 5;
                     rooms[i].monsters[j].nmd = 'N';
                     rooms[i].monsters[j].die = false;
+                    rooms[i].monsters[j].stop = false;
+                    monstercontainer[count].stop = false ;
                     monstercontainer[count].die = false ;
                     monstercontainer[count].nmd = 'N';
                     monstercontainer[count].moves = 5;
@@ -1127,6 +1129,8 @@ void monstersinroom(WINDOW* win , Room* rooms , int roomcount , Monster* monster
                     rooms[i].monsters[j].moves = 7;
                     rooms[i].monsters[j].nmd = 'F';
                     rooms[i].monsters[j].die = false;
+                    rooms[i].monsters[j].stop = false;
+                    monstercontainer[count].stop = false ;
                     monstercontainer[count].die = false ;
                     monstercontainer[count].nmd = 'F';
                     monstercontainer[count].moves = 7;
@@ -1153,6 +1157,8 @@ void monstersinroom(WINDOW* win , Room* rooms , int roomcount , Monster* monster
                     rooms[i].monsters[j].moves = 8;
                     rooms[i].monsters[j].nmd = 'T';
                     rooms[i].monsters[j].die = false;
+                    rooms[i].monsters[j].stop = false;
+                    monstercontainer[count].stop = false ;
                     monstercontainer[count].die = false ;
                     monstercontainer[count].nmd = 'T';
                     monstercontainer[count].moves = 8;
@@ -1178,6 +1184,8 @@ void monstersinroom(WINDOW* win , Room* rooms , int roomcount , Monster* monster
                     rooms[i].monsters[j].moves = 10;
                     rooms[i].monsters[j].nmd = 'E';
                     rooms[i].monsters[j].die = false;
+                    rooms[i].monsters[j].stop = false;
+                    monstercontainer[count].stop = false ;
                     monstercontainer[count].die = false ;
                     monstercontainer[count].nmd = 'E';
                     monstercontainer[count].moves = 10;
@@ -1203,6 +1211,8 @@ void monstersinroom(WINDOW* win , Room* rooms , int roomcount , Monster* monster
                     rooms[i].monsters[j].moves = 12;
                     rooms[i].monsters[j].nmd = 'U';
                     rooms[i].monsters[j].die = false;
+                    rooms[i].monsters[j].stop = false;
+                    monstercontainer[count].stop = false ;
                     monstercontainer[count].die = false ;
                     monstercontainer[count].nmd = 'U';
                     monstercontainer[count].moves = 12;
@@ -1259,10 +1269,11 @@ void activatemonsters(WINDOW* win, Room* rooms, int roomcount, int x, int y, Mon
             if (distance < 3 && monster_move_counter % 5 != 0) { 
                 continue;
             }
-
+            if(rooms[room].monsters[i].stop == false){
             // حرکت به سمت قهرمان
-            rooms[room].monsters[i].x += (hero->x > prevX) ? 1 : (hero->x < prevX) ? -1 : 0;
-            rooms[room].monsters[i].y += (hero->y > prevY) ? 1 : (hero->y < prevY) ? -1 : 0;
+                rooms[room].monsters[i].x += (hero->x > prevX) ? 1 : (hero->x < prevX) ? -1 : 0;
+                rooms[room].monsters[i].y += (hero->y > prevY) ? 1 : (hero->y < prevY) ? -1 : 0;
+            }
 
             // بررسی برخورد با قهرمان
             if (aroundhero(hero, rooms[room].monsters[i])) {
@@ -1279,11 +1290,15 @@ void activatemonsters(WINDOW* win, Room* rooms, int roomcount, int x, int y, Mon
             } // تاخیر بیشتر برای حرکت کندتر
     }
 }
+
 void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, int roomcount, Monster* monstercontainer){
     int room = inside(hero->x  ,hero->y , rooms , roomcount);
     if(room == -1){
         return;
     }
+
+
+
     for(int i=0 ; i<rooms[room].monstercount ; i++){
         int damage =0 ;
         int mx = rooms[room].monsters[i].x;
@@ -1300,7 +1315,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                 wrefresh(messagewin);
                 sleep(1);
             }
-            return;
+            
         }
         else if(abs(hero->x - mx) <= 1 && abs(hero->y - my) <= 1 && hero->typeofInitialGun == 5 ){
             damage = 10; 
@@ -1314,7 +1329,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                 wrefresh(messagewin);
                 sleep(1);
             }
-            return;
+            
         }
         else if(hero->typeofInitialGun == 2  && daggercounter > 0){
             damage = 12;
@@ -1335,6 +1350,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         }
                         daggercounter --;
                         return;
+                        
                     
                     }
                     else if((char)ch == '|'){
@@ -1348,8 +1364,10 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         daggercounter--;
                         wrefresh(win);
                         return;
+                        
                     }
                 }
+
             }
             else if(c=='a'){
                 for(int k=hero->x ; k>hero->x - 6 ; k--){
@@ -1366,7 +1384,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                             sleep(1);
                         }
                         daggercounter--;
-                        return;
+                        
                     }
                     else if((char)ch == '|'){
                         mvwaddch(win , hero->y , k+1 , '!');
@@ -1399,7 +1417,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                             sleep(1);
                         }
                         daggercounter--;
-                        return;
+                        
                     }
                     else if((char)ch == '_'){
                         mvwaddch(win ,k+1 ,hero->x, '!');
@@ -1411,7 +1429,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         guns++;
                         daggercounter--;
                         wrefresh(win);
-                        return;
+                        
                     }
                 }
             }
@@ -1430,7 +1448,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                             sleep(1);
                         }
                         daggercounter--;
-                        return;
+                        
                     }
 
                     else if((char)ch == '_'){
@@ -1443,10 +1461,12 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         guns++;
                         daggercounter--;
                         wrefresh(win);
-                        return;
+                        
                     }
                 }
             }
+
+        }
         else if(hero->typeofInitialGun == 3  && mwandcounter > 0){
             damage = 15;
             int c = getch();
@@ -1466,7 +1486,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         }
                         mwandcounter --;
                         rooms[room].monsters[i].stop = true;
-                        return;
+                        
                     
                     }
                     else if((char)ch == '|'){
@@ -1479,7 +1499,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         guns++;
                         mwandcounter--;
                         wrefresh(win);
-                        return;
+                        
                     }
                 }
             }
@@ -1499,7 +1519,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         }
                         mwandcounter--;
                         rooms[room].monsters[i].stop = true;
-                        return;
+                       
                     }
                     else if((char)ch == '|'){
                         mvwaddch(win , hero->y , k+1 , 'I');
@@ -1511,7 +1531,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         guns++;
                         mwandcounter--;
                         wrefresh(win);
-                        return;
+                        
                     }
                     
                 }
@@ -1533,7 +1553,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         }
                         mwandcounter--;
                         rooms[room].monsters[i].stop = true;
-                        return;
+                       
                     }
                     else if((char)ch == '_'){
                         mvwaddch(win ,k+1 ,hero->x, 'I');
@@ -1545,7 +1565,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         guns++;
                         mwandcounter--;
                         wrefresh(win);
-                        return;
+                        
                     }
                 }
             }
@@ -1565,7 +1585,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         }
                         daggercounter--;
                         rooms[room].monsters[i].stop = true;
-                        return;
+                        
                     }
 
                     else if((char)ch == '_'){
@@ -1576,9 +1596,143 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
                         guncontainer[guns].y = k-1;
                         guncontainer[guns].type = 3;
                         guns++;
-                        daggercounter--;
+                        mwandcounter--;
                         wrefresh(win);
-                        return;
+                        
+                    }
+                }
+            }
+        
+        }
+        else if(hero->typeofInitialGun == 4  && narrowcounter > 0){
+            damage = 5;
+            int c = getch();
+            if(c=='d'){
+                for(int k=hero->x ; k<hero->x + 5 ; k++){
+                    chtype ch = mvwinch(win , hero->y  ,k);
+                    if(rooms[room].monsters[i].x == k && rooms[room].monsters[i].y == hero->y){
+                        rooms[room].monsters[i].health -= damage;
+                        mvwprintw(messagewin , 0 , 0, "You attacked with arrow!");
+                        
+                        wrefresh(messagewin);
+                        sleep(1);
+                        if(rooms[room].monsters[i].health <= 0){
+                            rooms[room].monsters[i].die = true;
+                            mvwprintw(messagewin , 0 , 0 , "you killed enemy %c" , rooms[room].monsters[i].nmd);
+                            sleep(1);
+                        }
+                        narrowcounter --;
+                        
+                        
+                    
+                    }
+                    else if((char)ch == '|'){
+                        mvwaddch(win , hero->y , k-1 , '/');
+                        container[k-1][hero->y] = '/';
+                        guncontainer[guns].used = 0;
+                        guncontainer[guns].x = k-1;
+                        guncontainer[guns].y = hero->y;
+                        guncontainer[guns].type = 4;
+                        guns++;
+                        narrowcounter--;
+                        wrefresh(win);
+                        
+                    }
+                }
+            }
+            else if(c=='a'){
+                for(int k=hero->x ; k>hero->x - 5 ; k--){
+                    chtype ch = mvwinch(win , hero->y , k);
+                    if(rooms[room].monsters[i].x == k && rooms[room].monsters[i].y == hero->y){
+                        rooms[room].monsters[i].health -= damage;
+                        mvwprintw(messagewin , 0 , 0, "You attacked with arrow!");
+                        wrefresh(messagewin);
+                        sleep(1);
+                        if(rooms[room].monsters[i].health <= 0){
+                            rooms[room].monsters[i].die = true;
+                            mvwprintw(messagewin , 0 , 0 , "you killed enemy %c" , rooms[room].monsters[i].nmd);
+                            wrefresh(messagewin);
+                            sleep(1);
+                        }
+                            narrowcounter--;
+                       
+                    }
+                    else if((char)ch == '|'){
+                        mvwaddch(win , hero->y , k+1 , '/');
+                        container[k+1][hero->y] = '/';
+                        guncontainer[guns].used = 0;
+                        guncontainer[guns].x = k+1;
+                        guncontainer[guns].y = hero->y;
+                        guncontainer[guns].type = 4;
+                        guns++;
+                        narrowcounter--;
+                        wrefresh(win);
+                        
+                    }
+                    
+                }
+
+            }
+            else if(c=='w'){
+                for(int k=hero-> y; k>hero->y - 5 ; k--){
+                    chtype ch = mvwinch(win , k , hero->x);
+                    if(rooms[room].monsters[i].y == k && rooms[room].monsters[i].x == hero->x){
+                        rooms[room].monsters[i].health -= damage;
+                        mvwprintw(messagewin , 0 , 0, "You attacked with arrow!");
+                        wrefresh(messagewin);
+                        sleep(1);
+                        if(rooms[room].monsters[i].health <= 0){
+                            rooms[room].monsters[i].die = true;
+                            mvwprintw(messagewin , 0 , 0 , "you killed enemy %c" , rooms[room].monsters[i].nmd);
+                            wrefresh(messagewin);
+                            sleep(1);
+                        }
+                            narrowcounter--;
+                       
+                    }
+                    else if((char)ch == '_'){
+                        mvwaddch(win ,k+1 ,hero->x, '/');
+                        container[hero->x][k+1] = '/';
+                        guncontainer[guns].used = 0;
+                        guncontainer[guns].x = hero->x;
+                        guncontainer[guns].y = k+1;
+                        guncontainer[guns].type = 4;
+                        guns++;
+                        mwandcounter--;
+                        wrefresh(win);
+                        
+                    }
+                }
+            }
+            else if(c=='s'){
+                for(int k=hero->y ; k<hero->y + 5 ; k++){
+                    chtype ch  = mvwinch(win , k , hero->x);
+                    if(rooms[room].monsters[i].y == k && rooms[room].monsters[i].x == hero->x){
+                        rooms[room].monsters[i].health -= damage;
+                        mvwprintw(messagewin , 0 , 0, "You attacked with arrow!");
+                        wrefresh(messagewin);
+                        sleep(1);
+                        if(rooms[room].monsters[i].health <= 0){
+                            rooms[room].monsters[i].die = true;
+                            mvwprintw(messagewin , 0 , 0 , "you killed enemy %c" , rooms[room].monsters[i].nmd);
+                            wrefresh(messagewin);
+                            sleep(1);
+                        }
+                            narrowcounter--;
+                        
+                    }
+
+                    else if((char)ch == '_'){
+                        mvwaddch(win , k-1 ,hero->x , '/');
+                        container[hero->x][k-1] = '/';
+                        guncontainer[guns].used = 0;
+                        guncontainer[guns].x = hero->x;
+                        guncontainer[guns].y = k-1;
+                        guncontainer[guns].type = 3;
+                        guns++;
+                        narrowcounter--;
+                        wrefresh(win);
+                        
                     }
                 }
             }
@@ -1586,7 +1740,7 @@ void attackmonster(WINDOW* win , WINDOW* messagewin, Hero* hero, Room* rooms, in
         }
     }
 }
-}
+
 
     
 
@@ -2241,7 +2395,7 @@ int main() {
                     save_explored_map(seen4, floorcount , messagewin);
                 }
                 break;
-            case 32:
+            case 'a':
                 attackmonster( mapWin ,  messagewin,  &hero, rooms, roomCount, monstercontainer);
                 break;
 
